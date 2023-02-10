@@ -43,7 +43,7 @@ fn run_client(args:&ClientArgs){
     println!("loading config files ...");
     // load pipe configs
     //let pipe_config_dir = args.pipe_configs.clone().unwrap_or(home_dir.join(".pipe_configs"));
-    let pipe_config_dir = args.pipe_configs.clone().unwrap_or(PathBuf::from("/Users/Wyatt/IdeaProjects/status_v3/pipe_configs"));
+    let pipe_config_dir = args.pipe_configs.clone().unwrap_or(PathBuf::from("./pipe_configs"));
 
     let conf_col = ConfigCollection::from_dir(&pipe_config_dir);
 
@@ -96,10 +96,10 @@ fn run_client(args:&ClientArgs){
     let mut ssh_connections = HashMap::<String,Host>::new();
 
     // connect to localhost
-    println!("connecting to localhost ...");
-    let mut localhost = Host::new(&this_host,&this_user,22).expect(&format!("unable to connect to localhost {}@{}",this_user,this_host));
-    localhost.check_for_bin();
-    ssh_connections.insert(this_host.clone(),localhost);
+    // println!("connecting to localhost ...");
+    // let mut localhost = Host::new(&this_host,&this_user,22).expect(&format!("unable to connect to localhost {}@{}",this_user,this_host));
+    // localhost.check_for_bin();
+    // ssh_connections.insert(this_host.clone(),localhost);
 
     println!("connecting to remote hosts ...");
     for server in &needed_servers {
