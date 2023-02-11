@@ -1,6 +1,6 @@
 label = "diffusion_calc_nlsam"
 
-preferred_computer = ["civmcluster1"]
+preferred_computer = "civmcluster1"
 
 [[stages]]
 label = "co_reg"
@@ -25,14 +25,14 @@ label = "dsi_studio_source"
 completion_file_pattern = "work/.*src(.gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
 signature_type = "OneToOne"
-preferred_computer = ["delos"]
+preferred_computer = "delos"
 
 [[stages]]
 label = "dsi_studio_fib"
 completion_file_pattern = "results/.*fib(.gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 signature_type = "OneToOne"
-preferred_computer = ["delos"]
+preferred_computer = "delos"
 
 [[stages]]
 label = "dsi_studio_export"
@@ -40,4 +40,4 @@ completion_file_pattern = "results/.*nii.gz"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 signature_type = "OneToMany"
 required_file_keywords = [ "qa" ,"iso", "fa", "ad", "rd" ]
-preferred_computer = ["delos"]
+preferred_computer = "delos"

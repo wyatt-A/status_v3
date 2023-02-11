@@ -1,5 +1,5 @@
 label = "co_reg"
-preferred_computer = ["civmcluster1"]
+preferred_computer = "civmcluster1"
 
 [[stages]]
 label = "make_header"

@@ -1,6 +1,6 @@
 label = "diffusion_calc"
 
-preferred_computer = ["delos"]
+preferred_computer = "delos"
 
 [[stages]]
 label = "co_reg"
