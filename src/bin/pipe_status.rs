@@ -147,8 +147,8 @@ fn run_client(args:&ClientArgs){
     for host in &needed_hosts {
         let server_config = ssh_conf.query(host);
         if server_config.is_empty(){
-            println!("unable to find a ssh config for {}.\nPlease add a config for {} like the following...\nHost {}\n   HostName {}\n   User <your username on {}>"
-            ,host,host,host,host,host);
+            println!("unable to find a ssh config for {}.\nPlease add a config for {} in {:?} like the following...\nHost {}\n   HostName {}\n   User <your username on {}>"
+            ,host,host,ssh_config,host,host,host);
             return
         }
     }
