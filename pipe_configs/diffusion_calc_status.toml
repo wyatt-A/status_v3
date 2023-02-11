@@ -36,4 +36,3 @@ completion_file_pattern = "results/.*nii.gz"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 signature_type = "OneToMany"
 required_file_keywords = [ "qa" ,"iso", "fa", "ad", "rd" ]
-

@@ -20,6 +20,7 @@ impl Request {
 pub enum ServerError {
     RequestParse,
     BIGGUS_DISKUS_NotSet,
+
 }
 
 #[derive(Serialize,Deserialize,Debug,Clone)]

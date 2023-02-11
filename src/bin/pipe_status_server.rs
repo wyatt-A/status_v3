@@ -19,9 +19,9 @@ fn main(){
 }
 
 
-fn run_server(requst_json:&str){
+fn run_server(request_json:&str){
 
-    let re = match process_request(requst_json) {
+    let re = match process_request(request_json) {
         Err(e) => Response::Error(e),
         Ok(stat) => Response::Success(stat)
     };
@@ -34,8 +34,7 @@ fn run_server(requst_json:&str){
         println!("raw request = {:?}",req);
 
         println!("loading request ...");
-        //let req:Request = serde_json::from_str(req).map_err(|_|ServerError::RequestParse)?;
-        let req:Request = serde_json::from_str(req).unwrap();
+        let req:Request = serde_json::from_str(req).map_err(|_|ServerError::RequestParse)?;
 
         println!("parsed request = {:?}",req);
 
