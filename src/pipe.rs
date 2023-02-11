@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use crate::stage::Stage;
+use regex::Regex;
+use crate::stage::{SignatureType, Stage};
 use serde::{Serialize,Deserialize};
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
@@ -34,6 +35,164 @@ pub struct ConfigCollection {
 }
 
 impl ConfigCollection {
+
+    pub fn generate_templates(dir:&Path) {
+
+        if dir.exists(){
+            println!("directory already exists! Nothing will be generated.");
+            return
+        }
+
+        match std::fs::create_dir_all(dir) {
+            Err(e) => {
+                println!("cannot make directory {:?}. {:?}",dir,e);
+                return
+            } ,
+            Ok(_) => {}
+        }
+
+        let co_reg = PipeStatusConfig{
+            label: String::from("co_reg"),
+            preferred_computer: Some(String::from("civmcluster1")),
+            stages: vec![
+                Stage{
+                    label: "make_header".to_string(),
+                    preferred_computer: None,
+                    completion_file_pattern: Regex::new(r"inputs/.*nhdr").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/co_reg_${PARAM0}-inputs".to_string(),
+                    signature_type: SignatureType::ManyToMany,
+                    required_file_keywords: None,
+                },
+                Stage{
+                    label: "ants_registration".to_string(),
+                    preferred_computer: None,
+                    completion_file_pattern: Regex::new(r"results/.*[Aa]ffine.(mat|txt)").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/co_reg_${PARAM0}-results".to_string(),
+                    signature_type: SignatureType::ManyToMany,
+                    required_file_keywords: None,
+                },
+                Stage{
+                    label: "apply_transform".to_string(),
+                    preferred_computer: None,
+                    completion_file_pattern: Regex::new(r"work/Reg_.*nhdr").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/co_reg_${PARAM0}-work".to_string(),
+                    signature_type: SignatureType::ManyToMany,
+                    required_file_keywords: None,
+                },
+            ],
+        };
+        let diffusion_calc = PipeStatusConfig{
+            label: "diffusion_calc".to_string(),
+            preferred_computer: Some(String::from("delos")),
+            stages: vec![
+                Stage{
+                    label: "co_reg".to_string(),
+                    preferred_computer: None,
+                    completion_file_pattern: Regex::new(r"results/co_reg.*headfile").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
+                    signature_type: SignatureType::ManyToOne,
+                    required_file_keywords: None,
+                },
+                Stage{
+                    label: "make_4d".to_string(),
+                    preferred_computer: None,
+                    completion_file_pattern: Regex::new(r"results/nii4D_[^_]+nii$").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
+                    signature_type: SignatureType::ManyToOne,
+                    required_file_keywords: None,
+                },
+                Stage{
+                    label: "dsi_studio_source".to_string(),
+                    preferred_computer: None,
+                    completion_file_pattern: Regex::new(r"work/.*src(.gz)?$").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-work".to_string(),
+                    signature_type: SignatureType::OneToOne,
+                    required_file_keywords: None,
+                },
+                Stage{
+                    label: "dsi_studio_fib".to_string(),
+                    preferred_computer: None,
+                    completion_file_pattern: Regex::new(r"results/.*fib(.gz)?$").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
+                    signature_type: SignatureType::OneToOne,
+                    required_file_keywords: None,
+                },
+                Stage{
+                    label: "dsi_studio_export".to_string(),
+                    preferred_computer: None,
+                    completion_file_pattern: Regex::new(r"results/.*nii.gz").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
+                    signature_type: SignatureType::OneToMany,
+                    required_file_keywords: Some(vec!["qa" ,"iso", "fa", "ad", "rd"].iter().map(|thing| thing.to_string()).collect()),
+                },
+            ],
+        };
+        let diffusion_calc_nlsam = PipeStatusConfig{
+            label: "diffusion_calc_nlsam".to_string(),
+            preferred_computer: Some(String::from("civmcluster1")),
+            stages: vec![
+                Stage{
+                    label: "co_reg".to_string(),
+                    preferred_computer: None,
+                    completion_file_pattern: Regex::new(r"results/co_reg.*headfile").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
+                    signature_type: SignatureType::ManyToOne,
+                    required_file_keywords: None,
+                },
+                Stage{
+                    label: "make_4d".to_string(),
+                    preferred_computer: None,
+                    completion_file_pattern: Regex::new(r"results/nii4D_[^_]+nii$").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
+                    signature_type: SignatureType::ManyToOne,
+                    required_file_keywords: None,
+                },
+                Stage{
+                    label: "make_4d_nlsam".to_string(),
+                    preferred_computer: None,
+                    completion_file_pattern: Regex::new(r"results/nii4D_[^_]+?NLSAM.nii$").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
+                    signature_type: SignatureType::ManyToOne,
+                    required_file_keywords: None,
+                },
+                Stage{
+                    label: "dsi_studio_source".to_string(),
+                    preferred_computer: Some(String::from("delos")),
+                    completion_file_pattern: Regex::new(r"work/.*src(.gz)?$").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work".to_string(),
+                    signature_type: SignatureType::OneToOne,
+                    required_file_keywords: None,
+                },
+                Stage{
+                    label: "dsi_studio_fib".to_string(),
+                    preferred_computer: Some(String::from("delos")),
+                    completion_file_pattern: Regex::new(r"results/.*fib(.gz)?$").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
+                    signature_type: SignatureType::OneToOne,
+                    required_file_keywords: None,
+                },
+                Stage{
+                    label: "dsi_studio_export".to_string(),
+                    preferred_computer: Some(String::from("delos")),
+                    completion_file_pattern: Regex::new(r"results/.*nii.gz").unwrap(),
+                    directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
+                    signature_type: SignatureType::OneToMany,
+                    required_file_keywords: Some(vec!["qa" ,"iso", "fa", "ad", "rd"].iter().map(|thing| thing.to_string()).collect()),
+                },
+            ],
+        };
+
+        let s = toml::to_string_pretty(&co_reg).expect("cannot serialize pipe config!");
+        utils::write_to_file(&dir.join("co_reg"),"toml",&s);
+
+        let s = toml::to_string_pretty(&diffusion_calc).expect("cannot serialize pipe config!");
+        utils::write_to_file(&dir.join("diffusion_calc"),"toml",&s);
+
+        let s = toml::to_string_pretty(&diffusion_calc_nlsam).expect("cannot serialize pipe config!");
+        utils::write_to_file(&dir.join("diffusion_calc_nlsam"),"toml",&s);
+
+        println!("pipeline config templates generated in {:?}",dir);
+    }
 
     pub fn from_dir(dir:&Path) -> Self {
         let mut configs = HashMap::<String,PipeStatusConfig>::new();

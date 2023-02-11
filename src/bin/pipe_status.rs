@@ -15,6 +15,12 @@ use status_v3::status::{Status, StatusType};
 use whoami;
 
 #[derive(clap::Parser,Debug)]
+struct Args {
+    #[clap(subcommand)]
+    action:Action
+}
+
+#[derive(clap::Args,Debug)]
 struct ClientArgs {
     last_pipeline:String,
     runno_list:Vec<String>,
@@ -28,11 +34,39 @@ struct ClientArgs {
     run_server:Option<String>
 }
 
-fn main(){
-
-    let args:ClientArgs = ClientArgs::parse();
-    run_client(&args);
+#[derive(clap::Subcommand,Debug)]
+enum Action {
+    GenTemplates(GenTemplateArgs),
+    Check(ClientArgs)
 }
+
+
+#[derive(clap::Args,Debug)]
+struct GenTemplateArgs {
+    #[clap(short, long)]
+    directory:Option<PathBuf>
+}
+
+
+fn main(){
+    let args:Args = Args::parse();
+    match args.action {
+        Action::Check(client_args) =>  run_client(&client_args),
+        Action::GenTemplates(template_args) => gen_templates(template_args)
+    }
+}
+
+fn gen_templates(args:GenTemplateArgs) {
+    match args.directory {
+        Some(dir) => ConfigCollection::generate_templates(&dir),
+        None => {
+            let home_dir:PathBuf = dirs::home_dir().expect("cannot get home directory!");
+            let dir = home_dir.join(".pipe_config");
+            ConfigCollection::generate_templates(&dir)
+        }
+    }
+}
+
 
 fn run_client(args:&ClientArgs){
 
