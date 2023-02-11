@@ -53,55 +53,14 @@ impl Host {
         }
     }
 
-    // this just forces the shell to initialize to avoid delays later on
-    // pub fn check_for_server_bin(&mut self) {
-    //     println!("initializing {} ...",self.hostname);
-    //     self.shell.write(b"pipe_status_server\n").expect("cannot write to shell");
-    //
-    //     let mut string_response = String::new();
-    //
-    //     let re = Regex::new(r"pipe_status_server:=(.*)").expect("incorrect regular expression");
-    //
-    //     let received = loop {
-    //         let byte_chunk = match self.shell.read(){
-    //             Err(_) => {
-    //                 println!("shell read error!");
-    //                 break None
-    //             } ,
-    //             Ok(bytes) => bytes
-    //         };
-    //         let string_buffer = String::from_utf8(byte_chunk).unwrap();
-    //         string_response.push_str(&string_buffer);
-    //
-    //         // check that string_response contains the json
-    //
-    //         let txt = string_response.as_str();
-    //
-    //         let capture = re.captures(txt);
-    //
-    //         match capture {
-    //             Some(cap) => {
-    //                 break Some(cap.get(1).expect("no group captured").as_str());
-    //             }
-    //             None => {
-    //
-    //             }
-    //         }
-    //     }.expect("failed to retrieve response from host");
-    //
-    //     println!("recieved = {}",received);
-    //
-    // }
-
     pub fn run_and_listen(&mut self, shell_command:&str, regex_capture_pattern:Regex) -> Option<String> {
         let cmd = shell_command.to_owned() + "\n";
         self.shell.write(cmd.as_bytes()).expect(&format!("unable to write to shell on {}", self.hostname));
-        println!("wrote command to shell ...");
         let mut string_response = String::new();
         let str = loop {
             let byte_chunk = match self.shell.read(){
                 Err(_) => {
-                    println!("shell read error!");
+                    println!("shell read timeout!");
                     break None
                 } ,
                 Ok(bytes) => bytes
