@@ -12,41 +12,14 @@ use status_v3::host::{ConnectionError, Host};
 use status_v3::pipe::{ConfigCollection, ConfigCollectionError, PipeStatusConfig};
 use status_v3::request::{Request, Response, ServerError};
 use status_v3::status::{Status, StatusType};
+use status_v3::args;
 use whoami;
+use status_v3::args::{Args, Action, ClientArgs, GenTemplateArgs};
 
 
 pub const DEFAULT_PIPE_CONFIG_DIR:&str = ".pipe_config";
 
-#[derive(clap::Parser,Debug)]
-struct Args {
-    #[clap(subcommand)]
-    action:Action
-}
 
-#[derive(clap::Args,Debug)]
-struct ClientArgs {
-    last_pipeline:String,
-    runno_list:Vec<String>,
-    #[clap(long)]
-    base_runno:Option<String>,
-    #[clap(short, long)]
-    big_disk:Option<Vec<String>>,
-    #[clap(short, long)]
-    pipe_configs:Option<PathBuf>,
-}
-
-#[derive(clap::Subcommand,Debug)]
-enum Action {
-    GenTemplates(GenTemplateArgs),
-    Check(ClientArgs)
-}
-
-
-#[derive(clap::Args,Debug)]
-struct GenTemplateArgs {
-    #[clap(short, long)]
-    directory:Option<PathBuf>
-}
 
 
 fn main(){
@@ -203,8 +176,11 @@ fn run_client(args:&ClientArgs){
     // loop thru stages in pipe to get status
     // if stage is incomplete and a pipe, recurse, append to status report
 
-    let pipe = conf_col.get_pipe(&args.last_pipeline).unwrap();
-    let (status,prog) = pipe_status(pipe,args,&mut ssh_connections,&this_host,&big_disks,&conf_col);
+    //let pipe = conf_col.get_pipe(&args.last_pipeline).unwrap();
+
+    let (status,prog) = conf_col.pipe_status(&args.last_pipeline,&args,&mut ssh_connections,&this_host,&big_disks,&conf_col);
+
+    //let (status,prog) = pipe_status(pipe,args,&mut ssh_connections,&this_host,&big_disks,&conf_col);
 
     for s in &status{
         let txt = serde_json::to_string_pretty(s).expect("cannot convert to string");
@@ -260,7 +236,7 @@ fn pipe_status(pipe:&PipeStatusConfig, args:&ClientArgs,ssh_connections:&mut Has
             }
         };
 
-        println!("returned status = {:?}",stat);
+        println!("status received from {}",pref_computer);
 
         match &stat.progress {
             StatusType::NotStarted => { // if a pipe isn't started we have to consider it being a pipe

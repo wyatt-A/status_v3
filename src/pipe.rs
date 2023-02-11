@@ -3,6 +3,10 @@ use std::path::{Path, PathBuf};
 use regex::Regex;
 use crate::stage::{SignatureType, Stage};
 use serde::{Serialize,Deserialize};
+use crate::args::ClientArgs;
+use crate::host::Host;
+use crate::request::{Request, Response};
+use crate::status::{Status, StatusType};
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct PipeStatusConfig {
@@ -251,6 +255,97 @@ impl ConfigCollection {
 
     pub fn get_pipe(&self,pipe_name:&str) -> Option<&PipeStatusConfig> {
         self.configs.get(pipe_name)
+    }
+
+    pub fn pipe_status(&self,pipe_name:&str,args:&ClientArgs,ssh_connections:&mut HashMap<String,Host>, this_host:&String, big_disks:&Option<HashMap<String, String>>,config_collection:&ConfigCollection) -> (Vec<Status>,f32) {
+        println!("running stage checks for {} ...",pipe_name);
+
+        let pipe = self.get_pipe(pipe_name).expect("invalid pipeline name!");
+
+        let mut pref_computer = pipe.preferred_computer.clone().unwrap_or(this_host.clone());
+
+        let mut stage_statuses:Vec<Status> = vec![];
+
+        for stage in &pipe.stages {
+
+            println!("building request for {} ...",stage.label);
+            let mut request = Request{
+                stage: stage.clone(),
+                big_disk:None,
+                run_number_list:args.runno_list.clone(),
+                base_runno:args.base_runno.clone(),
+            };
+
+            // overwrite preferred computer if needed
+            match &stage.preferred_computer {
+                Some(computer) => {pref_computer = computer.clone()}
+                None => {}
+            }
+
+            let host = ssh_connections.get_mut(&pref_computer).expect("host not found! what happened??");
+            request.big_disk = match &big_disks {
+                Some(disks) => {
+                    match disks.get(&pref_computer) {
+                        Some(disk) => Some(disk.to_owned()),
+                        None => None
+                    }
+                }
+                None => None
+            };
+            println!("sending request to {}",pref_computer);
+            let stat = match host.submit_request(&request) {
+                Response::Success(status) => status,
+                Response::Error(_) => Status{
+                    label: stage.label.clone(),
+                    progress: StatusType::Invalid,
+                    children: vec![]
+                }
+            };
+
+            println!("status received from {}",pref_computer);
+
+            match &stat.progress {
+                StatusType::NotStarted => { // if a pipe isn't started we have to consider it being a pipe
+
+                    match config_collection.get_pipe(&stage.label) {
+                        Some(pipe) => {
+                            let (children,progress) = self.pipe_status(&pipe.label,args,ssh_connections,this_host,big_disks,config_collection);
+                            let mut s = if progress == 0.0 {
+                                Status{
+                                    label: stage.label.clone(),
+                                    progress: StatusType::NotStarted,
+                                    children: vec![]
+                                }
+                            }else {
+                                Status{
+                                    label: stage.label.clone(),
+                                    progress: StatusType::InProgress(progress),
+                                    children: vec![]
+                                }
+                            };
+                            s.children = children;
+                            stage_statuses.push(s);
+                        }
+                        None => stage_statuses.push(stat)
+                    }
+                }
+                _=> stage_statuses.push(stat)
+            }
+        }
+
+        // integrate progress
+        let mut total_progress:f32 = 0.0;
+        stage_statuses.iter().for_each(|stat|{
+            match &stat.progress {
+                StatusType::Complete => total_progress = total_progress + 1.0,
+                StatusType::InProgress(progress) => total_progress = total_progress + progress,
+                _=> {}
+            }
+        });
+
+        let frac_progress = total_progress /stage_statuses.len() as f32;
+
+        (stage_statuses,frac_progress)
     }
 
 }
