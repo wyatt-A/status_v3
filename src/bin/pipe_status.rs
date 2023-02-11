@@ -8,7 +8,7 @@ use clap::{Command, Parser};
 use clap;
 use ssh_config::SSHConfig;
 use dirs;
-use status_v3::host::Host;
+use status_v3::host::{ConnectionError, Host};
 use status_v3::pipe::{ConfigCollection, ConfigCollectionError, PipeStatusConfig};
 use status_v3::request::{Request, Response, ServerError};
 use status_v3::status::{Status, StatusType};
@@ -33,8 +33,6 @@ struct ClientArgs {
     big_disk:Option<Vec<String>>,
     #[clap(short, long)]
     pipe_configs:Option<PathBuf>,
-    #[clap(short, long)]
-    run_server:Option<String>
 }
 
 #[derive(clap::Subcommand,Debug)]
@@ -76,6 +74,10 @@ fn run_client(args:&ClientArgs){
     let this_exe = std::env::current_exe().expect("cannot determine this program!");
 
     let home_dir:PathBuf = dirs::home_dir().expect("cannot get home directory!");
+
+    let ssh_dir = home_dir.join(".ssh");
+    let ssh_config = ssh_dir.join("config");
+
     let this_host = utils::computer_name();
     let this_user = whoami::username();
 
@@ -105,7 +107,7 @@ fn run_client(args:&ClientArgs){
 
     println!("resolving pipeline hosts ...");
     // get list of hosts from last_pipe
-    let needed_servers = conf_col.required_servers(&args.last_pipeline);
+    let needed_hosts = conf_col.required_servers(&args.last_pipeline);
 
     // parse big_disk option
     let big_disks = match &args.big_disk {
@@ -126,23 +128,30 @@ fn run_client(args:&ClientArgs){
 
     println!("checking ssh configurations ...");
     // load ssh config and check for existence
-    let ssh_config_file = home_dir.join(".ssh").join("config");
-    if !ssh_config_file.exists(){
-        println!("no ssh config found! You need to set this up first!");
+    if !ssh_config.exists(){
+        println!("no ssh config found! You need to set this up first!\n\
+        we are expecting something like this in your .ssh/config file...\n\
+        Host <computer_alias>\n\
+            HostName <computer_name>\n\
+            User <username_for_computer>"
+        );
         return
     }
 
     // load ssh config file and parse it to a usable type
-    let config_str = utils::read_to_string(&ssh_config_file,"");
-    let c = SSHConfig::parse_str(&config_str).unwrap();
+    let config_str = utils::read_to_string(&ssh_config,"");
+    let ssh_conf = SSHConfig::parse_str(&config_str).unwrap();
 
-
-    println!("checking for {:?} in .ssh/config",needed_servers);
+    println!("checking for {:?} in .ssh/config", needed_hosts);
     // check for a config for each server
-    for server in &needed_servers {
-        let server_config = c.query(server);
+    for host in &needed_hosts {
+        let server_config = ssh_conf.query(host);
         if server_config.is_empty(){
-            println!("we didn't find a ssh config for {} in your .ssh/config file. Please add the host the the file!",server);
+            println!("unable to find a ssh config for {} ...\n\
+            Host {}\n\
+                HostName {}\n\
+                User <your username on {}>"
+            ,host,host,host,host);
             return
         }
     }
@@ -151,22 +160,30 @@ fn run_client(args:&ClientArgs){
     println!("connecting to hosts ...");
     let mut ssh_connections = HashMap::<String,Host>::new();
 
-    // connect to localhost
-    // println!("connecting to localhost ...");
-    // let mut localhost = Host::new(&this_host,&this_user,22).expect(&format!("unable to connect to localhost {}@{}",this_user,this_host));
-    // localhost.check_for_bin();
-    // ssh_connections.insert(this_host.clone(),localhost);
-
     println!("connecting to remote hosts ...");
-    for server in &needed_servers {
-        let server_config = c.query(server);
+    for server in &needed_hosts {
+        let server_config = ssh_conf.query(server);
         let username = server_config.get("User");
         match username {
             Some(user) => {
                 match Host::new(server,user,22) {
-                    Err(_) =>{
-                        println!("unable to connect to {}. Make sure you have password-less access!\nYou may need to run ssh-copy-id {}@{}",server,user,server);
-                        return
+                    Err(conn_error) =>{
+
+                        match conn_error {
+                            ConnectionError::NoPublicKeysFound => {
+                                println!("no ssh public keys found in {:?}\nRun ssh-keygen and make sure you have password-less access to {}",ssh_dir,server);
+                                return;
+                            }
+                            ConnectionError::UnableToConnect => {
+                                println!("unable to connect to {}. Make sure you have password-less access!\nYou may need to run ssh-copy-id {}@{}",server,user,server);
+                                return
+                            }
+                            ConnectionError::UnableToStartShell => {
+                                println!("unable to start a shell on {}.",server);
+                            }
+                        }
+
+
                     } ,
                     Ok(mut host) => {
                         host.check_for_bin();
