@@ -80,8 +80,6 @@ fn run_client(args:&ClientArgs){
     let this_user = whoami::username();
 
     println!("loading config files ...");
-    // load pipe configs
-    //let pipe_config_dir = args.pipe_configs.clone().unwrap_or(home_dir.join(".pipe_config"));
 
     let pipe_conf_dir = args.pipe_configs.clone().unwrap_or(
         home_dir.join(DEFAULT_PIPE_CONFIG_DIR)
@@ -166,7 +164,10 @@ fn run_client(args:&ClientArgs){
         match username {
             Some(user) => {
                 match Host::new(server,user,22) {
-                    Err(_) => println!("unable to connect to {}. Make sure you have password-less access! You may need to run ssh-copy-id {}@{}",server,user,server),
+                    Err(_) =>{
+                        println!("unable to connect to {}. Make sure you have password-less access!\nYou may need to run ssh-copy-id {}@{}",server,user,server);
+                        return
+                    } ,
                     Ok(mut host) => {
                         host.check_for_bin();
                         ssh_connections.insert(server.to_string(),host);

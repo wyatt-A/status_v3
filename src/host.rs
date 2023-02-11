@@ -16,16 +16,32 @@ pub struct Host {
 pub enum ConnectionError {
     UnableToConnect,
     UnableToStartShell,
+    NoPublicKeysFound,
 }
 
 impl Host {
     pub fn new(hostname: &str, user_name: &str, port: u32) -> Result<Self, ConnectionError> {
-        let private_key = std::env::home_dir().expect("cannot get home dir").join(".ssh").join("id_rsa");
-        let mut session = ssh::create_session()
-            .username(user_name)
-            .private_key_path(private_key)
-            .connect(&format!("{}:{}", hostname, port)).map_err(|_| ConnectionError::UnableToConnect)?
-            .run_local();
+        //let private_key = std::env::home_dir().expect("cannot get home dir").join(".ssh").join("id_rsa");
+        let ssh_dir = std::env::home_dir().expect("cannot get home dir").join(".ssh");
+
+        // try different public keys in .ssh until one works
+
+        let pub_keys = utils::find_files(&ssh_dir,"pub",true).ok_or(ConnectionError::NoPublicKeysFound)?;
+
+        let mut session = pub_keys.iter().find_map(|key_file|{
+            println!("checking {:?}",key_file);
+            match ssh::create_session().username(user_name).private_key_path(&key_file.with_extension("")).connect(&format!("{}:{}", hostname, port)){
+                Err(_) => None,
+                Ok(thing) => Some(thing.run_local())
+            }
+        }).ok_or(ConnectionError::UnableToConnect)?;
+
+
+        // let mut session = ssh::create_session()
+        //     .username(user_name)
+        //     .private_key_path(private_key)
+        //     .connect(&format!("{}:{}", hostname, port)).map_err(|_| ConnectionError::UnableToConnect)?
+        //     .run_local();
         let shell = session.open_shell().map_err(|_| ConnectionError::UnableToStartShell)?;
 
         Ok(Host {
