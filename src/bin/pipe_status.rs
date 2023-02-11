@@ -128,8 +128,15 @@ fn run_client(args:&ClientArgs){
     // if stage is incomplete and a pipe, recurse, append to status report
 
     let pipe = conf_col.get_pipe(&args.last_pipeline).unwrap();
-    let status = pipe_status(pipe,args,&mut ssh_connections,&this_host,&big_disks,&conf_col);
-    println!("{:?}",status);
+    let (status,prog) = pipe_status(pipe,args,&mut ssh_connections,&this_host,&big_disks,&conf_col);
+
+    for s in &status{
+        let txt = serde_json::to_string_pretty(s).expect("cannot convert to string");
+        println!("{}",txt);
+    }
+    
+    //println!("{:?}",status);
+
 }
 
 
