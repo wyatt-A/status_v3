@@ -110,22 +110,23 @@ impl Host {
     }
 
 
+    pub fn _submit_request(&mut self,request:&Request) -> Response {
+        let req_string = serde_json::to_string(request).expect("unable to serialize request");
+        let command_string = format!("pipe_status_server --request-string='{}'\n",req_string);
+        let re = Regex::new(r"\|\|(.*)\|\|").expect("incorrect regular expression");
+        let json_response = self.run_and_listen(&command_string,re);
+        match json_response {
+            Some(json) => serde_json::from_str(&json).expect("cannot deserialize response"),
+            None => Response::Error(ServerError::RequestParse)
+        }
+    }
 
     pub fn submit_request(&mut self,request:&Request) -> Response {
 
-        // get some workstation env variable like WKS_BIN or something ...
-        // use that to call binary with server sub-command
-
         let req_string = serde_json::to_string(request).expect("unable to serialize request");
-
-        //let req_string_pretty = serde_json::to_string_pretty(request).expect("unable to serialize request");
-        println!("request string raw: '{}'",req_string);
-        //println!("request string pretty: {}",req_string_pretty);
 
         let command_string = format!("pipe_status_server --request-string='{}'\n",req_string);
         self.shell.write(command_string.as_bytes()).expect(&format!("unable to write to shell on {}",self.hostname));
-
-        println!("wrote command to shell ...");
 
         let mut string_response = String::new();
 
