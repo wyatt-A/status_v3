@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use regex::Regex;
 use crate::stage::{SignatureType, Stage};
 use serde::{Serialize,Deserialize};
@@ -27,12 +27,24 @@ impl PipeStatusConfig {
         }
         stages_flat
     }
+
+    pub fn from_file(file:&Path) -> Result<Self,ConfigCollectionError> {
+        let s = utils::read_to_string(&file,"toml");
+        Ok(toml::from_str(&s).map_err(|e|ConfigCollectionError::ConfigParse(file.clone().to_owned(),e))?)
+    }
 }
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct ConfigCollection {
     configs:HashMap<String,PipeStatusConfig>
 }
+
+pub enum ConfigCollectionError {
+    NoConfigsFound,
+    ConfigParse(PathBuf,toml::de::Error)
+}
+
+
 
 impl ConfigCollection {
 
@@ -194,18 +206,18 @@ impl ConfigCollection {
         println!("pipeline config templates generated in {:?}",dir);
     }
 
-    pub fn from_dir(dir:&Path) -> Self {
+    pub fn from_dir(dir:&Path) -> Result<Self,ConfigCollectionError> {
         let mut configs = HashMap::<String,PipeStatusConfig>::new();
         match utils::find_files(dir,"toml",true) {
             Some(files) => {
                 for file in files {
-                    let toml_str = utils::read_to_string(&file,"toml");
-                    let cfg:PipeStatusConfig = toml::from_str(&toml_str).expect("unable to load config!");
+                    let cfg = PipeStatusConfig::from_file(&file)?;
+                    //let cfg:PipeStatusConfig = toml::from_str(&toml_str).expect("unable to load config!");
                     configs.insert(cfg.label.clone(),cfg);
                 }
-                ConfigCollection{configs}
+                Ok(ConfigCollection{configs})
             },
-            None => panic!("no config files found!")
+            None => Err(ConfigCollectionError::NoConfigsFound)
         }
     }
 

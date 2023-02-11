@@ -9,10 +9,13 @@ use clap;
 use ssh_config::SSHConfig;
 use dirs;
 use status_v3::host::Host;
-use status_v3::pipe::{ConfigCollection, PipeStatusConfig};
+use status_v3::pipe::{ConfigCollection, ConfigCollectionError, PipeStatusConfig};
 use status_v3::request::{Request, Response, ServerError};
 use status_v3::status::{Status, StatusType};
 use whoami;
+
+
+pub const DEFAULT_PIPE_CONFIG_DIR:&str = ".pipe_config";
 
 #[derive(clap::Parser,Debug)]
 struct Args {
@@ -61,7 +64,7 @@ fn gen_templates(args:GenTemplateArgs) {
         Some(dir) => ConfigCollection::generate_templates(&dir),
         None => {
             let home_dir:PathBuf = dirs::home_dir().expect("cannot get home directory!");
-            let dir = home_dir.join(".pipe_config");
+            let dir = home_dir.join(DEFAULT_PIPE_CONFIG_DIR);
             ConfigCollection::generate_templates(&dir)
         }
     }
@@ -78,10 +81,27 @@ fn run_client(args:&ClientArgs){
 
     println!("loading config files ...");
     // load pipe configs
-    //let pipe_config_dir = args.pipe_configs.clone().unwrap_or(home_dir.join(".pipe_configs"));
-    let pipe_config_dir = args.pipe_configs.clone().unwrap_or(PathBuf::from("./pipe_configs"));
+    //let pipe_config_dir = args.pipe_configs.clone().unwrap_or(home_dir.join(".pipe_config"));
 
-    let conf_col = ConfigCollection::from_dir(&pipe_config_dir);
+    let pipe_conf_dir = args.pipe_configs.clone().unwrap_or(
+        home_dir.join(DEFAULT_PIPE_CONFIG_DIR)
+    );
+
+    let conf_col = match ConfigCollection::from_dir(&pipe_conf_dir) {
+        Err(error) => {
+            match error {
+                ConfigCollectionError::NoConfigsFound => {
+                    println!("no config files found in {:?}",pipe_conf_dir);
+                    return
+                }
+                ConfigCollectionError::ConfigParse(file,toml_error) => {
+                    println!("an error occurred when parsing config file: {:?}\n{:?}",file,toml_error);
+                    return
+                }
+            }
+        }
+        Ok(conf_col) => conf_col
+    };
 
     println!("resolving pipeline hosts ...");
     // get list of hosts from last_pipe
