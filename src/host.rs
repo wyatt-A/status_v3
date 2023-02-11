@@ -17,6 +17,7 @@ pub enum ConnectionError {
     UnableToConnect,
     UnableToStartShell,
     NoPublicKeysFound,
+    UnableToInitialize
 }
 
 impl Host {
@@ -40,48 +41,61 @@ impl Host {
         })
     }
 
-    // this just forces the shell to initialize to avoid delays later on
-    pub fn check_for_bin(&mut self) {
-        println!("initializing {} ...",self.hostname);
-        self.shell.write(b"pipe_status_server\n").expect("cannot write to shell");
-
-        let mut string_response = String::new();
-
+    // attempt the run the server binary on the host. we should get a response from the server, otherwise
+    // we will consider it a connection error
+    pub fn check_for_server_bin(&mut self) -> Result<(),ConnectionError> {
+        println!("checking for server binary on {} ...",self.hostname);
+        let shell_cmd = "pipe_status_server";
         let re = Regex::new(r"pipe_status_server:=(.*)").expect("incorrect regular expression");
-
-        let received = loop {
-            let byte_chunk = match self.shell.read(){
-                Err(_) => {
-                    println!("shell read error!");
-                    break None
-                } ,
-                Ok(bytes) => bytes
-            };
-            let string_buffer = String::from_utf8(byte_chunk).unwrap();
-            string_response.push_str(&string_buffer);
-
-            // check that string_response contains the json
-
-            let txt = string_response.as_str();
-
-            let capture = re.captures(txt);
-
-            match capture {
-                Some(cap) => {
-                    break Some(cap.get(1).expect("no group captured").as_str());
-                }
-                None => {
-
-                }
-            }
-        }.expect("failed to retrieve response from host");
-
-        println!("recieved = {}",received);
-
+        match self.run_and_listen(shell_cmd,re) {
+            None => Err(ConnectionError::UnableToInitialize),
+            Some(_) => Ok(())
+        }
     }
 
+    // this just forces the shell to initialize to avoid delays later on
+    // pub fn check_for_server_bin(&mut self) {
+    //     println!("initializing {} ...",self.hostname);
+    //     self.shell.write(b"pipe_status_server\n").expect("cannot write to shell");
+    //
+    //     let mut string_response = String::new();
+    //
+    //     let re = Regex::new(r"pipe_status_server:=(.*)").expect("incorrect regular expression");
+    //
+    //     let received = loop {
+    //         let byte_chunk = match self.shell.read(){
+    //             Err(_) => {
+    //                 println!("shell read error!");
+    //                 break None
+    //             } ,
+    //             Ok(bytes) => bytes
+    //         };
+    //         let string_buffer = String::from_utf8(byte_chunk).unwrap();
+    //         string_response.push_str(&string_buffer);
+    //
+    //         // check that string_response contains the json
+    //
+    //         let txt = string_response.as_str();
+    //
+    //         let capture = re.captures(txt);
+    //
+    //         match capture {
+    //             Some(cap) => {
+    //                 break Some(cap.get(1).expect("no group captured").as_str());
+    //             }
+    //             None => {
+    //
+    //             }
+    //         }
+    //     }.expect("failed to retrieve response from host");
+    //
+    //     println!("recieved = {}",received);
+    //
+    // }
+
     pub fn run_and_listen(&mut self, shell_command:&str, regex_capture_pattern:Regex) -> Option<String> {
-        self.shell.write(shell_command.as_bytes()).expect(&format!("unable to write to shell on {}", self.hostname));
+        let cmd = shell_command.to_owned() + "\n";
+        self.shell.write(cmd.as_bytes()).expect(&format!("unable to write to shell on {}", self.hostname));
         println!("wrote command to shell ...");
         let mut string_response = String::new();
         let str = loop {
@@ -115,7 +129,7 @@ impl Host {
 
     pub fn submit_request(&mut self,request:&Request) -> Response {
         let req_string = serde_json::to_string(request).expect("unable to serialize request");
-        let command_string = format!("pipe_status_server --request-string='{}'\n",req_string);
+        let command_string = format!("pipe_status_server --request-string='{}'",req_string);
         let re = Regex::new(r"\|\|(.*)\|\|").expect("incorrect regular expression");
         let json_response = self.run_and_listen(&command_string,re);
         match json_response {

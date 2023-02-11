@@ -165,7 +165,6 @@ fn run_client(args:&ClientArgs){
             Some(user) => {
                 match Host::new(server,user,22) {
                     Err(conn_error) =>{
-
                         match conn_error {
                             ConnectionError::NoPublicKeysFound => {
                                 println!("no ssh public keys found in {:?}\nRun ssh-keygen and make sure you have password-less access to {}",ssh_dir,server);
@@ -177,19 +176,25 @@ fn run_client(args:&ClientArgs){
                             }
                             ConnectionError::UnableToStartShell => {
                                 println!("unable to start a shell on {}.",server);
+                                return
                             }
+                            _=> {}
                         }
-
-
                     } ,
                     Ok(mut host) => {
-                        host.check_for_bin();
+                        match host.check_for_server_bin() {
+                            Err(_) => {
+                                println!("unable to successfully talk to status server on {}.",server);
+                                return
+                            }
+                            Ok(_) => {}
+                        }
                         ssh_connections.insert(server.to_string(),host);
                     }
                 };
             }
             None => {
-                println!("we didn't find a username for {}. Please specify the username in .ssh/config",server);
+                println!("we didn't find a username for {}. Please specify the username in {:?}",server,ssh_config);
                 return
             }
         }
