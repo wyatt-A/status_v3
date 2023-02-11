@@ -44,7 +44,8 @@ fn run_server(requst_json:&str){
             None => std::env::var("BIGGUS_DISKUS").map_err(|_|ServerError::BIGGUS_DISKUS_NotSet)?
         };
         println!("running file check ...");
-        let status = req.stage.file_check(&big_disk,&req.run_number_list,None);
+
+        let status = req.stage.file_check(&big_disk,&req.run_number_list,req.base_runno);
         Ok(status)
     }
 }

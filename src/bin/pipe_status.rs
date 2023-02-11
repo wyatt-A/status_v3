@@ -19,6 +19,8 @@ struct ClientArgs {
     last_pipeline:String,
     runno_list:Vec<String>,
     #[clap(short, long)]
+    base_runno:Option<String>,
+    #[clap(short, long)]
     big_disk:Option<Vec<String>>,
     #[clap(short, long)]
     pipe_configs:Option<PathBuf>,
@@ -157,6 +159,7 @@ fn pipe_status(pipe:&PipeStatusConfig, args:&ClientArgs,ssh_connections:Rc<RefCe
             stage: stage.clone(),
             big_disk:None,
             run_number_list:args.runno_list.clone(),
+            base_runno:args.base_runno.clone(),
         };
 
         // append to preferred computers

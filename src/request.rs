@@ -7,6 +7,7 @@ pub struct Request {
     pub stage:Stage,
     pub big_disk:Option<String>,
     pub run_number_list:Vec<String>,
+    pub base_runno:Option<String>,
 }
 
 impl Request {
