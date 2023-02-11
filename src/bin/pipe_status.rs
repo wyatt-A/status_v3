@@ -175,7 +175,7 @@ fn pipe_status(pipe:&PipeStatusConfig, args:&ClientArgs,ssh_connections:&mut Has
             None => None
         };
         println!("sending request to {}",pref_computer);
-        let stat = match host._submit_request(&request) {
+        let stat = match host.submit_request(&request) {
             Response::Success(status) => status,
             Response::Error(_) => Status{
                 label: stage.label.clone(),
