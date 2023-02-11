@@ -18,7 +18,7 @@ use whoami;
 struct ClientArgs {
     last_pipeline:String,
     runno_list:Vec<String>,
-    #[clap(short, long)]
+    #[clap(long)]
     base_runno:Option<String>,
     #[clap(short, long)]
     big_disk:Option<Vec<String>>,
