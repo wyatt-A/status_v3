@@ -134,7 +134,7 @@ fn run_client(args:&ClientArgs){
         let txt = serde_json::to_string_pretty(s).expect("cannot convert to string");
         println!("{}",txt);
     }
-    
+
     //println!("{:?}",status);
 
 }
