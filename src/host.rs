@@ -21,23 +21,16 @@ pub enum ConnectionError {
 
 impl Host {
     pub fn new(hostname: &str, user_name: &str, port: u32) -> Result<Self, ConnectionError> {
-        //let private_key = std::env::home_dir().expect("cannot get home dir").join(".ssh").join("id_rsa");
         let ssh_dir = std::env::home_dir().expect("cannot get home dir").join(".ssh");
-
-        // try different public keys in .ssh until one works
-
         let pub_keys = utils::find_files(&ssh_dir,"pub",true).ok_or(ConnectionError::NoPublicKeysFound)?;
-
+        // lazy search for a private key that works
         let mut session = pub_keys.iter().find_map(|key_file|{
-            println!("checking {:?}",key_file);
             match ssh::create_session().username(user_name).private_key_path(&key_file.with_extension("")).connect(&format!("{}:{}", hostname, port)){
                 Err(_) => None,
                 Ok(thing) => Some(thing.run_local())
             }
         }).ok_or(ConnectionError::UnableToConnect)?;
-        
         let shell = session.open_shell().map_err(|_| ConnectionError::UnableToStartShell)?;
-
         Ok(Host {
             hostname: hostname.to_string(),
             user_name: user_name.to_string(),
