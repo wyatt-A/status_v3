@@ -5,15 +5,13 @@ use serde::{Serialize,Deserialize};
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct PipeStatusConfig {
-    // a unit of work with a defined point completion
     pub label:String,
-    pub preferred_computer:Option<Vec<String>>,
+    pub preferred_computer:Option<String>,
     pub stages:Vec<Stage>,
 }
 
 impl PipeStatusConfig {
     pub fn get_stages(&self,conf_collection:&ConfigCollection) -> Vec<Stage> {
-        println!("WARNING:: THIS FUNCTION IS RECURSIVE");
         let mut stages_flat = vec![];
         for stage in &self.stages {
             match conf_collection.get_pipe(&stage.label) {
@@ -52,59 +50,82 @@ impl ConfigCollection {
         }
     }
 
-    pub fn _servers(&self) -> HashSet<String> {
+    // pub fn _servers(&self) -> HashSet<String> {
+    //
+    //     let mut servers = HashSet::<String>::new();
+    //
+    //     for (_,cfg) in &self.configs {
+    //         match &cfg.preferred_computer {
+    //             Some(computer) => {servers.insert(computer.clone());}
+    //             None => {}
+    //         }
+    //         for stage in &cfg.stages {
+    //             match &stage.preferred_computer {
+    //                 Some(computers) => {
+    //                     for computer in computers {
+    //                         servers.insert(computer.clone());
+    //                     }
+    //                 }
+    //                 None => {}
+    //             }
+    //         }
+    //     }
+    //     servers
+    // }
 
+    // pub fn servers(&self,pipe_name:&str) -> HashSet<String> {
+    //     let mut servers = HashSet::<String>::new();
+    //
+    //     let pipe = self.get_pipe(pipe_name).unwrap();
+    //
+    //     match &pipe.preferred_computer {
+    //         Some(computer) => {servers.insert(computer.clone());}
+    //         None => {}
+    //     }
+    //
+    //     let stages = pipe.get_stages(&self);
+    //     for stage in &stages {
+    //         match &stage.preferred_computer {
+    //             Some(computers) => {
+    //                 for computer in computers {
+    //                     servers.insert(computer.clone());
+    //                 }
+    //             }
+    //             None => {}
+    //         }
+    //     }
+    //     servers
+    // }
+
+    pub fn required_servers(&self,pipe_name:&str) -> HashSet<String> {
+        let pipe = self.get_pipe(pipe_name).expect("pipe not found!");
         let mut servers = HashSet::<String>::new();
-
-        for (_,cfg) in &self.configs {
-            match &cfg.preferred_computer {
-                Some(computers) => {
-                    for computer in computers {
-                        servers.insert(computer.clone());
-                    }
-                }
-                None => {}
-            }
-            for stage in &cfg.stages {
-                match &stage.preferred_computer {
-                    Some(computers) => {
-                        for computer in computers {
-                            servers.insert(computer.clone());
-                        }
-                    }
-                    None => {}
-                }
-            }
-        }
+        self.get_pipe_servers(&pipe,&mut servers);
         servers
     }
 
 
-    pub fn servers(&self,pipe_name:&str) -> HashSet<String> {
-        let mut servers = HashSet::<String>::new();
-
-        let pipe = self.get_pipe(pipe_name).unwrap();
-
+    fn get_pipe_servers(&self,pipe:&PipeStatusConfig,server_list:&mut HashSet<String>) {
         match &pipe.preferred_computer {
-            Some(computers) => {
-                servers.insert(computers[0].clone());
-            }
-            None => {}
+            Some(computer) => {server_list.insert(computer.clone());}
+            _=> {}
         }
-
-        let stages = pipe.get_stages(&self);
-        for stage in &stages {
+        for stage in &pipe.stages {
             match &stage.preferred_computer {
-                Some(computers) => {
-                    for computer in computers {
-                        servers.insert(computer.clone());
-                    }
-                }
-                None => {}
+                Some(computer) => {server_list.insert(computer.clone());}
+                _=> {}
+            }
+            match self.get_pipe(&stage.label) {
+                Some(pipe) =>{
+                    let mut pipe = pipe.clone();
+                    pipe.preferred_computer = stage.preferred_computer.clone();
+                    self.get_pipe_servers(&pipe,server_list)
+                },
+                _=> {}
             }
         }
-        servers
     }
+
 
 
     pub fn get_pipe(&self,pipe_name:&str) -> Option<&PipeStatusConfig> {
@@ -112,3 +133,49 @@ impl ConfigCollection {
     }
 
 }
+
+// // get all stages
+// pub fn get_pipe_servers(pipe:&PipeStatusConfig,pipe_collection:&ConfigCollection,server_list:&mut HashSet<String>) {
+//     match &pipe.preferred_computer {
+//         Some(computer) => {server_list.insert(computer.clone());}
+//         _=> {}
+//     }
+//     for stage in &pipe.stages {
+//          match &stage.preferred_computer {
+//              Some(computer) => {server_list.insert(computer.clone());}
+//              _=> {}
+//          }
+//         match pipe_collection.get_pipe(&stage.label) {
+//             Some(pipe) =>{
+//                 let mut pipe = pipe.clone();
+//                 pipe.preferred_computer = stage.preferred_computer.clone();
+//                 get_pipe_servers(&pipe,pipe_collection,server_list)
+//             },
+//             _=> {}
+//         }
+//     }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

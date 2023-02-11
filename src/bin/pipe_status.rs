@@ -51,7 +51,7 @@ fn run_client(args:&ClientArgs){
 
     println!("resolving pipeline hosts ...");
     // get list of hosts from last_pipe
-    let needed_servers = conf_col.servers(&args.last_pipeline);
+    let needed_servers = conf_col.required_servers(&args.last_pipeline);
 
     // parse big_disk option
     let big_disks = match &args.big_disk {
@@ -144,11 +144,7 @@ fn run_client(args:&ClientArgs){
 fn pipe_status(pipe:&PipeStatusConfig, args:&ClientArgs,ssh_connections:&mut HashMap<String,Host>, this_host:&String, big_disks:&Option<HashMap<String, String>>,config_collection:&ConfigCollection) -> (Vec<Status>,f32) {
     println!("running stage checks for {} ...",pipe.label);
 
-
-    //let mut preferred_computers = pipe.preferred_computer.clone().unwrap_or(vec![]);
-    let mut preferred_computers = pipe.preferred_computer.clone().unwrap_or(vec![this_host.clone()]);
-
-    let mut pref_computer = &preferred_computers[0];
+    let mut pref_computer = pipe.preferred_computer.clone().unwrap_or(this_host.clone());
 
     let mut stage_statuses:Vec<Status> = vec![];
 
@@ -162,21 +158,16 @@ fn pipe_status(pipe:&PipeStatusConfig, args:&ClientArgs,ssh_connections:&mut Has
             base_runno:args.base_runno.clone(),
         };
 
-        // append to preferred computers
+        // overwrite preferred computer if needed
         match &stage.preferred_computer {
-            Some(computers) => {
-                // for computer in computers {
-                //     preferred_computers.insert(0,computer.clone());
-                // }
-                pref_computer = &computers[0];
-            }
+            Some(computer) => {pref_computer = computer.clone()}
             None => {}
         }
 
-        let host = ssh_connections.get_mut(pref_computer).expect("host not found! what happened??");
+        let host = ssh_connections.get_mut(&pref_computer).expect("host not found! what happened??");
         request.big_disk = match &big_disks {
             Some(disks) => {
-                match disks.get(pref_computer) {
+                match disks.get(&pref_computer) {
                     Some(disk) => Some(disk.to_owned()),
                     None => None
                 }

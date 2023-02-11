@@ -14,7 +14,7 @@ pub enum SignatureType {
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct Stage {
     pub label:String,
-    pub preferred_computer:Option<Vec<String>>,
+    pub preferred_computer:Option<String>,
     #[serde(with = "serde_regex")]
     pub completion_file_pattern:Regex,
     pub directory_pattern:String,
