@@ -124,26 +124,19 @@ fn run_client(args:&ClientArgs){
         }
     }
 
-
-    // protect connections with an reference-counted mutable ref-cell
-    let conn = Rc::new(RefCell::new(ssh_connections));
-
-
     // loop thru stages in pipe to get status
     // if stage is incomplete and a pipe, recurse, append to status report
 
     let pipe = conf_col.get_pipe(&args.last_pipeline).unwrap();
-    let status = pipe_status(pipe,args,conn,&this_host,&big_disks,&conf_col);
+    let status = pipe_status(pipe,args,&mut ssh_connections,&this_host,&big_disks,&conf_col);
     println!("{:?}",status);
 }
 
 
 
-fn pipe_status(pipe:&PipeStatusConfig, args:&ClientArgs,ssh_connections:Rc<RefCell<HashMap<String,Host>>>, this_host:&String, big_disks:&Option<HashMap<String, String>>,config_collection:&ConfigCollection) -> (Vec<Status>,f32) {
+fn pipe_status(pipe:&PipeStatusConfig, args:&ClientArgs,ssh_connections:&mut HashMap<String,Host>, this_host:&String, big_disks:&Option<HashMap<String, String>>,config_collection:&ConfigCollection) -> (Vec<Status>,f32) {
     println!("running stage checks for {} ...",pipe.label);
 
-    let ssh_conn = ssh_connections.clone();
-    let mut ssh_conn = ssh_conn.as_ref().borrow_mut();
 
     //let mut preferred_computers = pipe.preferred_computer.clone().unwrap_or(vec![]);
     let mut preferred_computers = pipe.preferred_computer.clone().unwrap_or(vec![this_host.clone()]);
@@ -173,7 +166,7 @@ fn pipe_status(pipe:&PipeStatusConfig, args:&ClientArgs,ssh_connections:Rc<RefCe
             None => {}
         }
 
-        let host = ssh_conn.get_mut(pref_computer).expect("host not found! what happened??");
+        let host = ssh_connections.get_mut(pref_computer).expect("host not found! what happened??");
         request.big_disk = match &big_disks {
             Some(disks) => {
                 match disks.get(pref_computer) {
@@ -200,7 +193,7 @@ fn pipe_status(pipe:&PipeStatusConfig, args:&ClientArgs,ssh_connections:Rc<RefCe
 
                 match config_collection.get_pipe(&stage.label) {
                     Some(pipe) => {
-                        let (children,progress) = pipe_status(pipe,args,ssh_connections.clone(),this_host,big_disks,config_collection);
+                        let (children,progress) = pipe_status(pipe,args,ssh_connections,this_host,big_disks,config_collection);
                         let mut s = if progress == 0.0 {
                             Status{
                                 label: stage.label.clone(),
