@@ -91,7 +91,9 @@ fn run_client(args:&ClientArgs){
         Err(error) => {
             match error {
                 ConfigCollectionError::NoConfigsFound => {
-                    println!("no config files found in {:?}",pipe_conf_dir);
+                    println!("no config files found in {:?}.\n\
+                    Please specify with --pipe-configs=/some/path\n\
+                    or generate some templates with pipe_status gen-templates",pipe_conf_dir);
                     return
                 }
                 ConfigCollectionError::ConfigParse(file,toml_error) => {
