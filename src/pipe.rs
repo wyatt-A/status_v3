@@ -16,22 +16,6 @@ pub struct PipeStatusConfig {
 }
 
 impl PipeStatusConfig {
-    pub fn get_stages(&self,conf_collection:&ConfigCollection) -> Vec<Stage> {
-        let mut stages_flat = vec![];
-        for stage in &self.stages {
-            match conf_collection.get_pipe(&stage.label) {
-                Some(pipe) =>{
-                    let mut stages = pipe.get_stages(&conf_collection);
-                    stages_flat.append(&mut stages);
-                },
-                None =>{
-                    stages_flat.push(stage.clone());
-                }
-            }
-        }
-        stages_flat
-    }
-
     pub fn from_file(file:&Path) -> Result<Self,ConfigCollectionError> {
         let s = utils::read_to_string(&file,"toml");
         Ok(toml::from_str(&s).map_err(|e|ConfigCollectionError::ConfigParse(file.clone().to_owned(),e))?)
@@ -51,6 +35,20 @@ pub enum ConfigCollectionError {
 
 
 impl ConfigCollection {
+
+    pub fn from_dir(dir:&Path) -> Result<Self,ConfigCollectionError> {
+        let mut configs = HashMap::<String,PipeStatusConfig>::new();
+        match utils::find_files(dir,"toml",true) {
+            Some(files) => {
+                for file in files {
+                    let cfg = PipeStatusConfig::from_file(&file)?;
+                    configs.insert(cfg.label.clone(),cfg);
+                }
+                Ok(ConfigCollection{configs})
+            },
+            None => Err(ConfigCollectionError::NoConfigsFound)
+        }
+    }
 
     pub fn generate_templates(dir:&Path) {
 
@@ -210,21 +208,6 @@ impl ConfigCollection {
         println!("pipeline config templates generated in {:?}",dir);
     }
 
-    pub fn from_dir(dir:&Path) -> Result<Self,ConfigCollectionError> {
-        let mut configs = HashMap::<String,PipeStatusConfig>::new();
-        match utils::find_files(dir,"toml",true) {
-            Some(files) => {
-                for file in files {
-                    let cfg = PipeStatusConfig::from_file(&file)?;
-                    //let cfg:PipeStatusConfig = toml::from_str(&toml_str).expect("unable to load config!");
-                    configs.insert(cfg.label.clone(),cfg);
-                }
-                Ok(ConfigCollection{configs})
-            },
-            None => Err(ConfigCollectionError::NoConfigsFound)
-        }
-    }
-
     pub fn required_servers(&self,pipe_name:&str) -> HashSet<String> {
         let pipe = self.get_pipe(pipe_name).expect("pipe not found!");
         let mut servers = HashSet::<String>::new();
@@ -257,7 +240,7 @@ impl ConfigCollection {
         self.configs.get(pipe_name)
     }
 
-    pub fn pipe_status(&self,pipe_name:&str,args:&ClientArgs,ssh_connections:&mut HashMap<String,Host>, this_host:&String, big_disks:&Option<HashMap<String, String>>,config_collection:&ConfigCollection) -> (Vec<Status>,f32) {
+    pub fn pipe_status(&self,pipe_name:&str,args:&ClientArgs,ssh_connections:&mut HashMap<String,Host>, this_host:&String, big_disks:&Option<HashMap<String, String>>) -> (Vec<Status>,f32) {
         println!("running stage checks for {} ...",pipe_name);
 
         let pipe = self.get_pipe(pipe_name).expect("invalid pipeline name!");
@@ -268,7 +251,7 @@ impl ConfigCollection {
 
         for stage in &pipe.stages {
 
-            println!("building request for {} ...",stage.label);
+            //println!("building request for {} ...",stage.label);
             let mut request = Request{
                 stage: stage.clone(),
                 big_disk:None,
@@ -302,14 +285,14 @@ impl ConfigCollection {
                 }
             };
 
-            println!("status received from {}",pref_computer);
+            //println!("status received from {}",pref_computer);
 
             match &stat.progress {
                 StatusType::NotStarted => { // if a pipe isn't started we have to consider it being a pipe
 
-                    match config_collection.get_pipe(&stage.label) {
+                    match self.get_pipe(&stage.label) {
                         Some(pipe) => {
-                            let (children,progress) = self.pipe_status(&pipe.label,args,ssh_connections,this_host,big_disks,config_collection);
+                            let (children,progress) = self.pipe_status(&pipe.label,args,ssh_connections,this_host,big_disks);
                             let mut s = if progress == 0.0 {
                                 Status{
                                     label: stage.label.clone(),
