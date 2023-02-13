@@ -5,8 +5,7 @@ use status_v3::pipe::ConfigCollection;
 use status_v3::request::Request;
 
 
-
 #[test]
 fn test(){
-    println!("{:?}",whoami::realname());
+    println!("{:?}",whoami::username());
 }
