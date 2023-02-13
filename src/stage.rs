@@ -1,15 +1,9 @@
+use std::path::{Path, PathBuf};
 use regex::Regex;
 use serde::{Serialize,Deserialize};
 use crate::status::{Status, StatusType};
 
-#[derive(Serialize,Deserialize,Debug,Clone)]
-pub enum SignatureType {
-    Discrete,
-    ManyToOne,
-    ManyToMany,
-    OneToMany,
-    OneToOne,
-}
+
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct Stage {
@@ -20,6 +14,11 @@ pub struct Stage {
     pub directory_pattern:String,
     pub signature_type:SignatureType,
     pub required_file_keywords:Option<Vec<String>>,
+    //pub resolver:Resolver
+    //pub count_resolution:Option<FileCountResolution>,
+    //pub count_multiplier:Option<f32>,
+    //#[serde(with = "serde_regex")]
+    //pub count_name_parse:Option<Regex>,
 }
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
@@ -38,7 +37,6 @@ impl Stage {
         //println!("stage label: {}",self.label);
 
         let re = Regex::new(r"(\$\{[[:alnum:]_]+\})").map_err(|_|FileCheckError::InvalidRegex)?;
-
 
         // may have user arg BIGGUS_DISKUS
         // it an optional hostname : alternate_biggus
@@ -81,16 +79,51 @@ impl Stage {
         println!("runno list = {:?}",runno_list);
         println!("\tresolved directory pattern :{:?}",the_dir);
 
-        // trim required matches based on signature type=
-        let required_matches = match &self.signature_type {
-            ManyToMany => {
-                runno_list.clone()
-            }
-            ManyToOne => {
 
+
+        // let n = match &self.count_resolution {
+        //     Some(method) => {
+        //         match method {
+        //             FileCountResolution::CountFiles(re) => {
+        //                 // use regex to get count from matches
+        //                 1
+        //             }
+        //             FileCountResolution::ListFile(pattern) => {
+        //                 // use the pattern to open a list file to extract n
+        //                 1
+        //             }
+        //             FileCountResolution::Anything => 1,
+        //             FileCountResolution::Match(pattern) => 1
+        //         }
+        //     }
+        //     None => 1
+        // };
+        //
+        // let required_matches = match &self.signature_type {
+        //
+        //     ToK => {
+        //         vec![]
+        //     }
+        //
+        //
+        //     _=> Err(FileCheckError::SignatureTypeNotImplemented)?
+        //
+        // };
+
+
+        // trim required matches based on signature type=
+        // this was too clever for our "better" signature types.
+        // we stuffed the meaning of K into the lenght of required matches, making this not extesnsible.
+
+        let required_matches = match &self.signature_type {
+            ManyToOne => {
                 // we will assume only the base runno is involved in the match
                 vec![base_runno.ok_or(FileCheckError::BaseRunNumberMustBeSpecified)?.to_string()]
             }
+            ManyToMany => {
+                runno_list.clone()
+            }
+
             OneToMany => {
                 //self.required_file_keywords.clone().expect("you need to specify required file keywords for OneToMany signature pattern")
                 self.required_file_keywords.clone().ok_or(FileCheckError::RequiredFileKeywordsNotFound)?
@@ -159,3 +192,86 @@ impl Stage {
         }
     }
 }
+
+
+
+
+
+
+// how to determine the patterns we will match for stage completion
+#[derive(Serialize,Deserialize,Debug,Clone)]
+pub enum SignatureType {
+    // ToN,
+    // ToKN,
+    // ToK,
+    // ToZ,
+    ManyToOne,
+    ManyToMany,
+    OneToMany,
+    OneToOne,
+}
+
+// how to determine the number of files we are matching to
+// #[derive(Serialize,Deserialize,Debug,Clone)]
+// pub enum FileCountResolution {
+//     // use this regex to return the number of files we are expecting
+//     #[serde(with = "serde_regex")]
+//     CountFiles(Regex),
+//     //somehow this resolves to a path to a list file
+//     // on load, it uses the volume runnos as required matches (incompatible with required file keywords)
+//     ListFile(String),
+//     #[serde(with = "serde_regex")]
+//     CountFileInName(Regex),
+//     Constant(usize),
+// }
+
+// impl FileCountResolution {
+//     pub fn len(&self) -> usize {
+//         use FileCountResolution::*;
+//         match &self {
+//             CountFiles(re) => 1,
+//             CountFileInName(re) => 1,
+//             Constant(num) => *num,
+//             ListFile(filepath) => 1,
+//         }
+//     }
+// }
+//
+//
+//
+// #[derive(Serialize,Deserialize,Debug,Clone)]
+// struct Resolver {
+//     counter:FileCountResolution,
+//     #[serde(with = "serde_regex")]
+//     pattern:Regex
+// }
+//
+//
+//
+//
+//
+// // determines the required patterns to match the will determine the stage progress
+// #[derive(Serialize,Deserialize,Debug,Clone)]
+// pub enum PatternResolution {
+//     RunNumberList(FileCountResolution),
+//     BaseRunNumber(FileCountResolution),
+//
+// }
+
+
+
+/*
+Given a stage, determine
+
+
+// given a count resolution, return the number of things that must be found (files)
+n_expected = CountResolution.len()
+
+
+// build a list of regex patterns to search for, this may need a count
+n_found = CountPatterns.find()
+
+(n_found/n_expected) -> Status
+
+ */
+

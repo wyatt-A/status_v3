@@ -15,6 +15,75 @@ directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM
 signature_type = "ManyToOne"
 
 [[stages]]
+# create dwi average pre nlsam
+label = "make_avg"
+completion_file_pattern = "results/nii4D_.*dwi.nii([.]gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+# would love to test all however multi-shell and single b0 blow that up.
+# required_file_keywords = [ "b0avg" ,"dwi" ]
+signature_type = "OneToOne"
+
+[[stage]]
+# create a mask from avg
+label = "make_mask"
+# todo(expand to specified bits)
+#completion_file_pattern = "results/ni4D_${BASE}_mask.nii([.]gz)?$"
+completion_file_pattern = "results/nii4D_.*_mask.nii([.]gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+signature_type = "OneToOne"
+
+[[stage]]
+# crop mask
+label = "crop_mask"
+completion_file_pattern = "results/.*_mask_cropped.nii([.]gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+signature_type = "OneToOne"
+
+
+[[stage]]
+# crop 4d
+label = "crop_4d"
+completion_file_pattern = "results/.*${BASE}_cropped.nii([.]gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+signature_type = "OneToOne"
+
+# chunk up the cropped 4d
+# Not going to check beause we dont know how many.
+# Internally we gotta some how "find" the right number of things
+
+[[stage]]
+# optionally we stability test
+label = "save_sigma"
+# count_resolution has optional second of (float) multiplier
+count_resolution = CountFiles("work/.*chunks/.*dictChunk.*.nii$",2)
+completion_file_pattern = "work/.*/stabtest/.*.nii([.]gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
+signature_type = "ManyToMany"
+
+[[stage]]
+# generate the neighborhood_idx file
+label = "generate_nlsam_neighborhood_idx"
+output_count_pattern = "work/.*chunks/.*dictChunk.*.nii$"
+completion_file_pattern = "results/neighborhood_idx_([0-9]+).p$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+signature_type = "OneToOne"
+
+[[stage]]
+# generate dictionaires
+label = ""
+completion_file_pattern = "results/.nii([.]gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+signature_type = "ManyToMany"
+
+[[stage]]
+# denoise neighborhoods
+# working name, think harder.
+label = ""
+completion_file_pattern = "results/.nii([.]gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
+signature_type = "OneToOne"
+
+[[stages]]
 label = "make_4d_nlsam"
 completion_file_pattern = "results/nii4D_[^_]+?NLSAM.nii$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"

@@ -41,7 +41,16 @@ fn run_client(args:&ClientArgs){
     let ssh_dir = home_dir.join(".ssh");
     let ssh_config = ssh_dir.join("config");
     let this_host = utils::computer_name();
-    let this_user = whoami::realname();
+
+
+    let mut this_user = std::env::var("USER").expect("unable to get environment variable");
+    if this_user.is_empty(){
+        this_user = std::env::var("USERNAME").expect("unable to get environment variable");
+    }
+
+    //let this_user = whoami::username();
+
+    println!("you are: {}",this_user);
 
     println!("loading config files ...");
 
