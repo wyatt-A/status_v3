@@ -41,7 +41,7 @@ fn run_client(args:&ClientArgs){
     let ssh_dir = home_dir.join(".ssh");
     let ssh_config = ssh_dir.join("config");
     let this_host = utils::computer_name();
-    let this_user = whoami::username();
+    let this_user = whoami::realname();
 
     println!("loading config files ...");
 
