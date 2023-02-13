@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use clap::{Parser};
 use clap;
-use ssh_config::SSHConfig;
+use ssh_config::{ConfigValue, SSHConfig};
 use dirs;
 use status_v3::host::{ConnectionError, Host};
 use status_v3::pipe::{ConfigCollection, ConfigCollectionError};
@@ -41,7 +41,7 @@ fn run_client(args:&ClientArgs){
     let ssh_dir = home_dir.join(".ssh");
     let ssh_config = ssh_dir.join("config");
     let this_host = utils::computer_name();
-    //let this_user = whoami::username();
+    let this_user = whoami::username();
 
     println!("loading config files ...");
 
@@ -96,16 +96,16 @@ fn run_client(args:&ClientArgs){
     let config_str = utils::read_to_string(&ssh_config,"");
     let ssh_conf = SSHConfig::parse_str(&config_str).unwrap();
 
-    println!("checking for {:?} in .ssh/config", needed_hosts);
-    // check for a config for each server
-    for host in &needed_hosts {
-        let server_config = ssh_conf.query(host);
-        if server_config.is_empty(){
-            println!("unable to find a ssh config for {}.\nPlease add a config for {} in {:?} like the following...\nHost {}\n   HostName {}\n   User your_username_on_{}"
-            ,host,host,ssh_config,host,host,host);
-            return
-        }
-    }
+    // println!("checking for {:?} in .ssh/config", needed_hosts);
+    // // check for a config for each server
+    // for host in &needed_hosts {
+    //     let server_config = ssh_conf.query(host);
+    //     if server_config.is_empty(){
+    //         println!("unable to find a ssh config for {}.\nPlease add a config for {} in {:?} like the following...\nHost {}\n   HostName {}\n   User your_username_on_{}"
+    //         ,host,host,ssh_config,host,host,host);
+    //         return
+    //     }
+    // }
 
     // connect to servers
     println!("connecting to remote hosts ...");
@@ -113,44 +113,42 @@ fn run_client(args:&ClientArgs){
     for host in &needed_hosts {
         let host_config = ssh_conf.query(host);
         let username = host_config.get("User");
-        match username {
-            None => {
-                println!("we didn't find a username for {}. Please specify the username in {:?}", host, ssh_config);
-                return
-            }
-            Some(user) => {
-                match Host::new(host, user, 22) {
-                    Err(conn_error) =>{
-                        match conn_error {
-                            ConnectionError::NoPublicKeysFound => {
-                                println!("no ssh public keys found in {:?}\nRun ssh-keygen and make sure you have password-less access to {}", ssh_dir, host);
-                                return;
-                            }
-                            ConnectionError::UnableToConnect => {
-                                println!("unable to connect to {}. Make sure you have password-less access!\nYou may need to run ssh-copy-id {}@{}", host, user, host);
-                                return
-                            }
-                            ConnectionError::UnableToStartShell => {
-                                println!("unable to start a shell on {}.", host);
-                                return
-                            }
-                            _=> {}
-                        }
-                    } ,
-                    Ok(mut connected_host) => {
-                        match connected_host.check_for_server_bin() {
-                            Err(_) => {
-                                println!("unable to successfully talk to status server on {}.", host);
-                                return
-                            }
-                            Ok(_) => {
-                                ssh_connections.insert(host.to_string(), connected_host);
-                            }
-                        }
+
+        let username = match username {
+            None => this_user.as_str().to_string(),
+            Some(user) => user.to_string()
+        };
+
+        match Host::new(host, username.as_str(), 22) {
+            Err(conn_error) =>{
+                match conn_error {
+                    ConnectionError::NoPublicKeysFound => {
+                        println!("no ssh public keys found in {:?}\nRun ssh-keygen and make sure you have password-less access to {}", ssh_dir, host);
+                        return;
                     }
-                };
+                    ConnectionError::UnableToConnect => {
+                        println!("unable to connect to {}. Make sure you have password-less access!\nYou may need to run ssh-copy-id {}@{}", host, username, host);
+                        return
+                    }
+                    ConnectionError::UnableToStartShell => {
+                        println!("unable to start a shell on {}.", host);
+                        return
+                    }
+                    _=> {}
+                }
+            } ,
+            Ok(mut connected_host) => {
+                match connected_host.check_for_server_bin() {
+                    Err(_) => {
+                        println!("unable to successfully talk to status server on {}.", host);
+                        return
+                    }
+                    Ok(_) => {
+                        ssh_connections.insert(host.to_string(), connected_host);
+                    }
+                }
             }
-        }
+        };
     }
 
     let (status,prog) = conf_col.pipe_status(&args.last_pipeline,&args,&mut ssh_connections,&this_host,&big_disks);
@@ -166,3 +164,5 @@ fn run_client(args:&ClientArgs){
 
 
 }
+
+

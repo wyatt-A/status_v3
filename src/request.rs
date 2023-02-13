@@ -1,4 +1,4 @@
-use crate::stage::Stage;
+use crate::stage::{FileCheckError, Stage};
 use serde::{Serialize,Deserialize};
 use crate::status::Status;
 
@@ -20,7 +20,7 @@ impl Request {
 pub enum ServerError {
     RequestParse,
     BIGGUS_DISKUS_NotSet,
-
+    FileCheckError(FileCheckError)
 }
 
 #[derive(Serialize,Deserialize,Debug,Clone)]

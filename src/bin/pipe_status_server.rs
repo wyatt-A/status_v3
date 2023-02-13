@@ -44,7 +44,7 @@ fn run_server(request_json:&str){
         };
         println!("running file check ...");
 
-        let status = req.stage.file_check(&big_disk,&req.run_number_list,req.base_runno);
+        let status = req.stage.file_check(&big_disk,&req.run_number_list,req.base_runno).map_err(|e|ServerError::FileCheckError(e))?;
         Ok(status)
     }
 }

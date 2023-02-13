@@ -22,13 +22,22 @@ pub struct Stage {
     pub required_file_keywords:Option<Vec<String>>,
 }
 
+#[derive(Serialize,Deserialize,Debug,Clone)]
+pub enum FileCheckError {
+    InvalidRegex,
+    SignatureTypeNotImplemented,
+    RequiredFileKeywordsNotFound,
+    BaseRunNumberMustBeSpecified,
+}
+
+
 impl Stage {
-    pub fn file_check(&self, big_disk:&str, runno_list:&Vec<String>, base_runno:Option<String>) -> Status {
+    pub fn file_check(&self, big_disk:&str, runno_list:&Vec<String>, base_runno:Option<String>) -> Result<Status,FileCheckError> {
         use SignatureType::*;
 
         //println!("stage label: {}",self.label);
 
-        let re = Regex::new(r"(\$\{[[:alnum:]_]+\})").unwrap();
+        let re = Regex::new(r"(\$\{[[:alnum:]_]+\})").map_err(|_|FileCheckError::InvalidRegex)?;
 
 
         // may have user arg BIGGUS_DISKUS
@@ -78,31 +87,29 @@ impl Stage {
                 runno_list.clone()
             }
             ManyToOne => {
+
                 // we will assume only the base runno is involved in the match
-                vec![base_runno.expect("base runno must be specified for ManyToOne signature type").to_string()]
+                vec![base_runno.ok_or(FileCheckError::BaseRunNumberMustBeSpecified)?.to_string()]
             }
-
             OneToMany => {
-                self.required_file_keywords.clone().expect("you need to specify required file keywords for OneToMany signature pattern")
+                //self.required_file_keywords.clone().expect("you need to specify required file keywords for OneToMany signature pattern")
+                self.required_file_keywords.clone().ok_or(FileCheckError::RequiredFileKeywordsNotFound)?
             }
-
             OneToOne => {
                 // relies on completion file pattern to filter to the ONLY thing which should match.
                 vec![".".to_string()]
             }
-
             _=> {
-                panic!("signature not implemented")
+                Err(FileCheckError::SignatureTypeNotImplemented)?
             }
-
         };
 
         let contents = match std::fs::read_dir(&the_dir) {
-            Err(_) => return Status{
+            Err(_) => return Ok(Status{
                 label: self.label.clone(),
                 progress: StatusType::NotStarted,
                 children: vec![]
-            },
+            }),
             Ok(contents) => contents
         };
 
@@ -132,23 +139,23 @@ impl Stage {
         }
 
         return if count == required_matches.len() {
-            Status{
+            Ok(Status{
                 label: self.label.clone(),
                 progress: StatusType::Complete,
                 children: vec![]
-            }
+            })
         } else if count == 0 {
-            Status{
+            Ok(Status{
                 label: self.label.clone(),
                 progress: StatusType::NotStarted,
                 children: vec![]
-            }
+            })
         } else {
-            Status{
+            Ok(Status{
                 label: self.label.clone(),
                 progress: StatusType::InProgress(count as f32 / required_matches.len() as f32),
                 children: vec![]
-            }
+            })
         }
     }
 }
