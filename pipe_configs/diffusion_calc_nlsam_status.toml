@@ -1,18 +1,22 @@
 label = "diffusion_calc_nlsam"
-
 preferred_computer = "civmcluster1"
+
+[substitutions]
+prefix = "diffusion"
+sep = ""
+program = "dsi_studio"
+suffix = ""
 
 [[stages]]
 label = "co_reg"
 completion_file_pattern = "results/co_reg.*headfile"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-signature_type = "ManyToOne"
+file_counter  = {type="Constant",count = 1}
 
 [[stages]]
 label = "make_4d"
 completion_file_pattern = "results/nii4D_[^_]+nii$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-signature_type = "ManyToOne"
 
 [[stages]]
 # create dwi average pre nlsam
@@ -21,73 +25,66 @@ completion_file_pattern = "results/nii4D_.*dwi.nii([.]gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 # would love to test all however multi-shell and single b0 blow that up.
 # required_file_keywords = [ "b0avg" ,"dwi" ]
-signature_type = "OneToOne"
 
-[[stage]]
+[[stages]]
 # create a mask from avg
 label = "make_mask"
 # todo(expand to specified bits)
 #completion_file_pattern = "results/ni4D_${BASE}_mask.nii([.]gz)?$"
 completion_file_pattern = "results/nii4D_.*_mask.nii([.]gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-signature_type = "OneToOne"
 
-[[stage]]
+[[stages]]
 # crop mask
 label = "crop_mask"
 completion_file_pattern = "results/.*_mask_cropped.nii([.]gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-signature_type = "OneToOne"
 
-
-[[stage]]
+[[stages]]
 # crop 4d
 label = "crop_4d"
 completion_file_pattern = "results/.*${BASE}_cropped.nii([.]gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-signature_type = "OneToOne"
 
 # chunk up the cropped 4d
 # Not going to check beause we dont know how many.
 # Internally we gotta some how "find" the right number of things
 
-[[stage]]
+[[stages]]
 # optionally we stability test
 label = "save_sigma"
 # count_resolution has optional second of (float) multiplier
-count_resolution = CountFiles("work/.*chunks/.*dictChunk.*.nii$",2)
+file_counter  = {type="CountFiles",regex = "work/.*chunks/.*dictChunk.*.nii$", multiplier=2 }
 completion_file_pattern = "work/.*/stabtest/.*.nii([.]gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
-signature_type = "ManyToMany"
 
-[[stage]]
+[[stages]]
 # generate the neighborhood_idx file
 label = "generate_nlsam_neighborhood_idx"
-output_count_pattern = "work/.*chunks/.*dictChunk.*.nii$"
-completion_file_pattern = "results/neighborhood_idx_([0-9]+).p$"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-signature_type = "OneToOne"
+# count is chunks!
+file_counter  = {type="CountFiles",regex = "work/.*chunks/.*dictChunk.*.nii$",multiplier=1 }
+completion_file_pattern = "work/.*/neighbor_idx_([0-9]+).p$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
 
-[[stage]]
+[[stages]]
 # generate dictionaires
-label = ""
-completion_file_pattern = "results/.nii([.]gz)?$"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-signature_type = "ManyToMany"
+label = "generate_dictionaries"
+file_counter = { type ="FromNameDerived", regex="work/.*/neighbor_idx_([0-9]+).p$", dep_regex = "work/.*chunks/.*dictChunk.*.nii$",dep_multiplier=1 }
+completion_file_pattern = "work/.*/dict_[0-9]+.p$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
 
-[[stage]]
+[[stages]]
 # denoise neighborhoods
 # working name, think harder.
-label = ""
-completion_file_pattern = "results/.nii([.]gz)?$"
+label = "denoise_neighborhoods"
+completion_file_pattern = "work/.*/neighborhood_[0-9]+.*[.]p$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
-signature_type = "OneToOne"
+file_counter  = { type ="FromNameDerived", regex="work/.*/neighbor_idx_([0-9]+).p$", dep_regex = "work/.*chunks/.*dictChunk.*.nii$",dep_multiplier=1 }
 
 [[stages]]
 label = "make_4d_nlsam"
 completion_file_pattern = "results/nii4D_[^_]+?NLSAM.nii$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-signature_type = "ManyToOne"
 
 [[stages]]
 label = "dsi_studio_source"

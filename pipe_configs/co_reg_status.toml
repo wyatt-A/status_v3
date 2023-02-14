@@ -1,6 +1,12 @@
 label = "co_reg"
 preferred_computer = "civmcluster1"
 
+[substitutions]
+prefix = "diffusion"
+sep = ""
+program = "dsi_studio"
+suffix = ""
+
 [[stages]]
 label = "make_header"
 completion_file_pattern = "inputs/.*nhdr"

@@ -1,24 +1,19 @@
-use std::path::{Path, PathBuf};
+use std::collections::HashMap;
+use std::path::{Path};
 use regex::Regex;
 use serde::{Serialize,Deserialize};
 use crate::status::{Status, StatusType};
-
-
+use utils;
+use crate::pipe::SubstitutionTable;
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct Stage {
     pub label:String,
     pub preferred_computer:Option<String>,
-    #[serde(with = "serde_regex")]
-    pub completion_file_pattern:Regex,
+    pub completion_file_pattern:String,
     pub directory_pattern:String,
-    pub signature_type:SignatureType,
     pub required_file_keywords:Option<Vec<String>>,
-    //pub resolver:Resolver
-    //pub count_resolution:Option<FileCountResolution>,
-    //pub count_multiplier:Option<f32>,
-    //#[serde(with = "serde_regex")]
-    //pub count_name_parse:Option<Regex>,
+    pub file_counter:Option<FileCounter>,
 }
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
@@ -27,251 +22,158 @@ pub enum FileCheckError {
     SignatureTypeNotImplemented,
     RequiredFileKeywordsNotFound,
     BaseRunNumberMustBeSpecified,
+    PatternTooGenerous,
+    RequiredFileNotFound,
+    RegexCaptureNotFound,
+    IntParseError,
+    ExpectedRegexMatch,
+    NoExpectedMatches,
+    SubstitutionNotResolved(String),
 }
 
 
 impl Stage {
-    pub fn file_check(&self, big_disk:&str, runno_list:&Vec<String>, base_runno:Option<String>) -> Result<Status,FileCheckError> {
-        use SignatureType::*;
 
-        //println!("stage label: {}",self.label);
+    pub fn file_check(&self, big_disk:&String, runno_list:&Vec<String>, base_runno:Option<String>,sub_table:&HashMap<String,String>) -> Result<Status,FileCheckError> {
 
-        let re = Regex::new(r"(\$\{[[:alnum:]_]+\})").map_err(|_|FileCheckError::InvalidRegex)?;
+        let big_disk_resolved = substitute(&self.directory_pattern,sub_table)?;
+        let file_completion_pattern = substitute(&self.completion_file_pattern,sub_table)?;
 
-        // may have user arg BIGGUS_DISKUS
-        // it an optional hostname : alternate_biggus
-        // when it has no hostname, OR hostname matches this host, we use it.
 
-        let mut the_dir = self.directory_pattern.clone();
+        println!("big disk resolved = {}",big_disk_resolved);
 
-        println!("the dir = {:?}",the_dir);
+        let matched_files = utils::filesystem_search(Path::new(&big_disk_resolved),Some(Regex::new(&file_completion_pattern).map_err(|_|FileCheckError::InvalidRegex)?));
 
-        re.captures_iter(&self.directory_pattern).for_each(|captures|{
-            for cap_idx in 1..captures.len(){
-                if captures[cap_idx].eq("${BIGGUS_DISKUS}") {
-                    the_dir = the_dir.replace(&format!("{}",&captures[cap_idx]),&big_disk);
-                }else if captures[cap_idx].eq("${PARAM0}") {
-                    //todo(deal with 0 match?)
-                    the_dir = the_dir.replace(&format!("{}",&captures[cap_idx]),&runno_list[0]);
-                }else if captures[cap_idx].eq("${PREFIX}"){
-                    the_dir = the_dir.replace(&format!("{}",&captures[cap_idx]),"diffusion");
-                }
-                else if captures[cap_idx].eq("${SUFFIX}"){
-                    the_dir = the_dir.replace(&format!("{}",&captures[cap_idx]),"");
-                }
-                else if captures[cap_idx].eq("${PROGRAM}"){
-                    the_dir = the_dir.replace(&format!("{}",&captures[cap_idx]),"dsi_studio");
-                }
-                else if captures[cap_idx].eq("${BASE}"){
-                    the_dir = the_dir.replace(&format!("{}",&captures[cap_idx]),&base_runno.clone().unwrap_or("BASE_RUNNO".to_string()));
-                }
-                else if captures[cap_idx].eq("${SEP}"){
-                    the_dir = the_dir.replace(&format!("{}",&captures[cap_idx]),"");
-                }else {
-                    panic!("capture not recognized")
-                }
+        for file in &matched_files {
+            println!("{}",file);
+        }
+
+        let n_matched_files = matched_files.len();
+
+
+        let n_expected_matches = match &self.file_counter {
+            Some(counter) => {
+                counter.count(Path::new(&big_disk_resolved))?
             }
-        });
-
-        // directory should be valid now... if its missing we cant check?... or this stage has 0 progress
-        // return not started?
-
-        println!("runno list = {:?}",runno_list);
-        println!("\tresolved directory pattern :{:?}",the_dir);
-
-
-
-        // let n = match &self.count_resolution {
-        //     Some(method) => {
-        //         match method {
-        //             FileCountResolution::CountFiles(re) => {
-        //                 // use regex to get count from matches
-        //                 1
-        //             }
-        //             FileCountResolution::ListFile(pattern) => {
-        //                 // use the pattern to open a list file to extract n
-        //                 1
-        //             }
-        //             FileCountResolution::Anything => 1,
-        //             FileCountResolution::Match(pattern) => 1
-        //         }
-        //     }
-        //     None => 1
-        // };
-        //
-        // let required_matches = match &self.signature_type {
-        //
-        //     ToK => {
-        //         vec![]
-        //     }
-        //
-        //
-        //     _=> Err(FileCheckError::SignatureTypeNotImplemented)?
-        //
-        // };
-
-
-        // trim required matches based on signature type=
-        // this was too clever for our "better" signature types.
-        // we stuffed the meaning of K into the lenght of required matches, making this not extesnsible.
-
-        let required_matches = match &self.signature_type {
-            ManyToOne => {
-                // we will assume only the base runno is involved in the match
-                vec![base_runno.ok_or(FileCheckError::BaseRunNumberMustBeSpecified)?.to_string()]
-            }
-            ManyToMany => {
-                runno_list.clone()
-            }
-
-            OneToMany => {
-                //self.required_file_keywords.clone().expect("you need to specify required file keywords for OneToMany signature pattern")
-                self.required_file_keywords.clone().ok_or(FileCheckError::RequiredFileKeywordsNotFound)?
-            }
-            OneToOne => {
-                // relies on completion file pattern to filter to the ONLY thing which should match.
-                vec![".".to_string()]
-            }
-            _=> {
-                Err(FileCheckError::SignatureTypeNotImplemented)?
-            }
+            None => 1
         };
 
-        let contents = match std::fs::read_dir(&the_dir) {
-            Err(_) => return Ok(Status{
-                label: self.label.clone(),
+        if n_expected_matches == 0 {
+            return Err(FileCheckError::NoExpectedMatches)
+        }
+
+        if n_matched_files == 0 {
+            return Ok(Status{
+                label: self.label.to_string(),
                 progress: StatusType::NotStarted,
                 children: vec![]
-            }),
-            Ok(contents) => contents
-        };
-
-        let mut included = vec![];
-        for thing in contents {
-            let tp = thing.unwrap();
-            let file_name = tp.path().file_name().unwrap().to_string_lossy().into_owned();
-            let file_path = tp.path().to_string_lossy().into_owned();
-            if self.completion_file_pattern.is_match(&file_path) {
-                included.push(file_name)
-            }
+            })
         }
 
-        println!("\t\tconsidered items: {:?}",included);
-        println!("\t\tpattern: {:?}",self.completion_file_pattern);
-
-        included.sort();
-        let glob = included.join("/");
-
-        let mut count = 0;
-
-        for rm in &required_matches {
-            if Regex::new(&format!("(^|/).*{}.*($|/)",rm)).unwrap().is_match(&glob){
-                count = count + 1;
-                //println!("{}",rm);
-            }
-        }
-
-        return if count == required_matches.len() {
-            Ok(Status{
-                label: self.label.clone(),
+        if n_matched_files == n_expected_matches {
+            return Ok(Status{
+                label: self.label.to_string(),
                 progress: StatusType::Complete,
                 children: vec![]
             })
-        } else if count == 0 {
-            Ok(Status{
-                label: self.label.clone(),
-                progress: StatusType::NotStarted,
-                children: vec![]
-            })
-        } else {
-            Ok(Status{
-                label: self.label.clone(),
-                progress: StatusType::InProgress(count as f32 / required_matches.len() as f32),
-                children: vec![]
-            })
         }
+
+        let progress = n_matched_files as f32/n_expected_matches as f32;
+        Ok(Status{
+            label: self.label.to_string(),
+            progress: StatusType::InProgress(progress),
+            children: vec![]
+        })
     }
 }
 
+fn substitute(thing_to_resolve:&String,sub_table:&HashMap<String,String>) -> Result<String,FileCheckError> {
+
+    let re = Regex::new(r"(\$\{[[:alnum:]_]+\})").map_err(|_|FileCheckError::InvalidRegex)?;
+    let mut output = thing_to_resolve.clone();
+
+    for captures in re.captures_iter(&thing_to_resolve) {
+        for cap_idx in 1..captures.len(){
+            let cap:String = captures[cap_idx].to_string();
+            // we include the ${ } in capture because we want to replace it, but it is not in the hash
+            let subtr = &cap[2..cap.len()-1];
+            let rep = match sub_table.get(subtr) {
+                Some(sub) => {
+                    sub.to_string()
+                },
+                None => Err(FileCheckError::SubstitutionNotResolved(subtr.to_string()))?
+            };
+            println!("rep = {}",rep);
+            output = output.replace(&format!("{}",&captures[cap_idx]),&rep);
+        }
+    }
 
 
 
-
-
-// how to determine the patterns we will match for stage completion
-#[derive(Serialize,Deserialize,Debug,Clone)]
-pub enum SignatureType {
-    // ToN,
-    // ToKN,
-    // ToK,
-    // ToZ,
-    ManyToOne,
-    ManyToMany,
-    OneToMany,
-    OneToOne,
+    // re.captures_iter(&thing_to_resolve).for_each(|captures| {
+    //     for cap_idx in 1..captures.len(){
+    //         let cap:String = captures[cap_idx].to_string();
+    //         // we include the ${ } in capture because we want to replace it, but it is not in the hash
+    //
+    //         let rep = match sub_table.get(&cap[2..cap.len()-1]) {
+    //             Some(sub) => {
+    //                 println!("sub={}",sub);
+    //                 sub.to_string()
+    //             },
+    //             None => cap // this needs to be an error
+    //         };
+    //         println!("rep = {}",rep);
+    //         output = output.replace(&format!("{}",&captures[cap_idx]),&rep);
+    //     }
+    // });
+    Ok(output)
 }
 
 // how to determine the number of files we are matching to
-// #[derive(Serialize,Deserialize,Debug,Clone)]
-// pub enum FileCountResolution {
-//     // use this regex to return the number of files we are expecting
-//     #[serde(with = "serde_regex")]
-//     CountFiles(Regex),
-//     //somehow this resolves to a path to a list file
-//     // on load, it uses the volume runnos as required matches (incompatible with required file keywords)
-//     ListFile(String),
-//     #[serde(with = "serde_regex")]
-//     CountFileInName(Regex),
-//     Constant(usize),
-// }
+#[derive(Serialize,Deserialize,Debug,Clone)]
+#[serde(tag = "type")]
+pub enum FileCounter {
+    ListFile,
+    Constant{count:usize},
+    FromName{regex:String},
+    FromNameDerived{regex:String,dep_regex:String,dep_multiplier:usize},
+    CountFiles{regex:String,multiplier:usize},
+}
 
-// impl FileCountResolution {
-//     pub fn len(&self) -> usize {
-//         use FileCountResolution::*;
-//         match &self {
-//             CountFiles(re) => 1,
-//             CountFileInName(re) => 1,
-//             Constant(num) => *num,
-//             ListFile(filepath) => 1,
-//         }
-//     }
-// }
-//
-//
-//
-// #[derive(Serialize,Deserialize,Debug,Clone)]
-// struct Resolver {
-//     counter:FileCountResolution,
-//     #[serde(with = "serde_regex")]
-//     pattern:Regex
-// }
-//
-//
-//
-//
-//
-// // determines the required patterns to match the will determine the stage progress
-// #[derive(Serialize,Deserialize,Debug,Clone)]
-// pub enum PatternResolution {
-//     RunNumberList(FileCountResolution),
-//     BaseRunNumber(FileCountResolution),
-//
-// }
-
-
-
-/*
-Given a stage, determine
-
-
-// given a count resolution, return the number of things that must be found (files)
-n_expected = CountResolution.len()
-
-
-// build a list of regex patterns to search for, this may need a count
-n_found = CountPatterns.find()
-
-(n_found/n_expected) -> Status
-
- */
-
+impl FileCounter {
+    pub fn count(&self,dir:&Path) -> Result<usize,FileCheckError> {
+        use FileCounter::*;
+        let count = match &self {
+            CountFiles {regex,multiplier} => {
+                let matched_filenames = utils::filesystem_search(&dir, Some(Regex::new(&regex).map_err(|_|FileCheckError::InvalidRegex)?));
+                matched_filenames.len()*multiplier
+            }
+            FromName{regex} => {
+                let re = Regex::new(&regex).map_err(|_|FileCheckError::InvalidRegex)?;
+                let matched_files = utils::filesystem_search(&dir,Some(re.clone()));
+                if matched_files.is_empty() {
+                    Err(FileCheckError::RequiredFileNotFound)?
+                }
+                let caps = re.captures(&matched_files[0]).ok_or(FileCheckError::RequiredFileNotFound)?;
+                let capture = caps.get(1).ok_or(FileCheckError::RegexCaptureNotFound)?.as_str();
+                capture.parse().map_err(|_|FileCheckError::IntParseError)?
+            }
+            Constant {count} => *count,
+            FromNameDerived {regex,dep_regex,dep_multiplier} => {
+                let re = Regex::new(&regex).map_err(|_|FileCheckError::InvalidRegex)?;
+                let matched_files = utils::filesystem_search(&dir,Some(re.clone()));
+                if matched_files.is_empty() {
+                    Err(FileCheckError::RequiredFileNotFound)?
+                }
+                let caps = re.captures(&matched_files[0]).ok_or(FileCheckError::ExpectedRegexMatch)?;
+                let capture = caps.get(1).ok_or(FileCheckError::RegexCaptureNotFound)?.as_str();
+                let from_name_int:usize = capture.parse().map_err(|_|FileCheckError::IntParseError)?;
+                let matched_filenames = utils::filesystem_search(&dir, Some(Regex::new(&dep_regex).map_err(|_|FileCheckError::InvalidRegex)?));
+                let multiplier = matched_filenames.len()*dep_multiplier;
+                multiplier*from_name_int
+            }
+            _=> 1
+        };
+        Ok(count)
+    }
+}

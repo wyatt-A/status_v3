@@ -2,9 +2,16 @@ label = "diffusion_calc"
 
 preferred_computer = "delos"
 
+[substitutions]
+prefix = "diffusion"
+sep = ""
+program = "dsi_studio"
+suffix = ""
+
 [[stages]]
 label = "co_reg"
 completion_file_pattern = "results/co_reg.*headfile"
+
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 signature_type = "ManyToOne"
 

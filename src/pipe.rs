@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use regex::Regex;
-use crate::stage::{SignatureType, Stage};
+use crate::stage::{Stage};
 use serde::{Serialize,Deserialize};
 use crate::args::ClientArgs;
 use crate::host::Host;
@@ -12,13 +12,80 @@ use crate::status::{Status, StatusType};
 pub struct PipeStatusConfig {
     pub label:String,
     pub preferred_computer:Option<String>,
+    pub substitutions:SubstitutionTable,
     pub stages:Vec<Stage>,
 }
+
+
+#[derive(Serialize,Deserialize,Debug,Clone)]
+pub struct SubstitutionTable {
+    pub base:Option<String>,
+    pub param0:Option<String>,
+    pub prefix:Option<String>,
+    pub sep:Option<String>,
+    pub program:Option<String>,
+    pub suffix:Option<String>,
+}
+
+impl SubstitutionTable {
+    pub fn to_hash(&self) -> HashMap<String,String> {
+        let mut h = HashMap::<String,String>::new();
+
+        match &self.prefix {
+            Some(prefix) => {
+                h.insert(String::from("PREFIX"),prefix.clone());
+            }
+            None => {}
+        }
+
+        match &self.sep {
+            Some(sep) => {
+                h.insert(String::from("SEP"),sep.clone());
+            }
+            None => {}
+        }
+
+        match &self.program {
+            Some(program) => {
+                h.insert(String::from("PROGRAM"),program.clone());
+            }
+            None => {}
+        }
+
+        match &self.suffix {
+            Some(suffix) => {
+                h.insert(String::from("SUFFIX"),suffix.clone());
+            }
+            None => {}
+        }
+
+        match &self.base {
+            Some(base) => {
+                h.insert(String::from("BASE"),base.clone());
+            }
+            None => {}
+        }
+
+        match &self.param0 {
+            Some(param0) => {
+                h.insert(String::from("PARAM0"),param0.clone());
+            }
+            None => {}
+        }
+
+        h
+
+    }
+}
+
 
 impl PipeStatusConfig {
     pub fn from_file(file:&Path) -> Result<Self,ConfigCollectionError> {
         let s = utils::read_to_string(&file,"toml");
         Ok(toml::from_str(&s).map_err(|e|ConfigCollectionError::ConfigParse(file.clone().to_owned(),e))?)
+    }
+    pub fn sub_table(&self) -> SubstitutionTable {
+        self.substitutions.clone()
     }
 }
 
@@ -27,12 +94,11 @@ pub struct ConfigCollection {
     configs:HashMap<String,PipeStatusConfig>
 }
 
+#[derive(Debug,Clone)]
 pub enum ConfigCollectionError {
     NoConfigsFound,
     ConfigParse(PathBuf,toml::de::Error)
 }
-
-
 
 impl ConfigCollection {
 
@@ -68,130 +134,154 @@ impl ConfigCollection {
         let co_reg = PipeStatusConfig{
             label: String::from("co_reg"),
             preferred_computer: Some(String::from("civmcluster1")),
+            substitutions: SubstitutionTable {
+                base: None,
+                param0: None,
+                prefix: None,
+                sep: None,
+                program: None,
+                suffix: None
+            },
             stages: vec![
                 Stage{
                     label: "make_header".to_string(),
                     preferred_computer: None,
-                    completion_file_pattern: Regex::new(r"inputs/.*nhdr").unwrap(),
+                    completion_file_pattern: String::from(r"inputs/.*nhdr"),
                     directory_pattern: "${BIGGUS_DISKUS}/co_reg_${PARAM0}-inputs".to_string(),
-                    signature_type: SignatureType::ManyToMany,
                     required_file_keywords: None,
+                    file_counter: None
                 },
                 Stage{
                     label: "ants_registration".to_string(),
                     preferred_computer: None,
-                    completion_file_pattern: Regex::new(r"results/.*[Aa]ffine.(mat|txt)").unwrap(),
+                    completion_file_pattern: String::from(r"results/.*[Aa]ffine.(mat|txt)"),
                     directory_pattern: "${BIGGUS_DISKUS}/co_reg_${PARAM0}-results".to_string(),
-                    signature_type: SignatureType::ManyToMany,
                     required_file_keywords: None,
+                    file_counter: None
                 },
                 Stage{
                     label: "apply_transform".to_string(),
                     preferred_computer: None,
-                    completion_file_pattern: Regex::new(r"work/Reg_.*nhdr").unwrap(),
+                    completion_file_pattern: String::from(r"work/Reg_.*nhdr"),
                     directory_pattern: "${BIGGUS_DISKUS}/co_reg_${PARAM0}-work".to_string(),
-                    signature_type: SignatureType::ManyToMany,
                     required_file_keywords: None,
+                    file_counter: None
                 },
             ],
         };
         let diffusion_calc = PipeStatusConfig{
             label: "diffusion_calc".to_string(),
             preferred_computer: Some(String::from("delos")),
+            substitutions: SubstitutionTable {
+                base: None,
+                param0: None,
+                prefix: None,
+                sep: None,
+                program: None,
+                suffix: None
+            },
             stages: vec![
                 Stage{
                     label: "co_reg".to_string(),
                     preferred_computer: None,
-                    completion_file_pattern: Regex::new(r"results/co_reg.*headfile").unwrap(),
+                    completion_file_pattern: String::from(r"results/co_reg.*headfile"),
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
-                    signature_type: SignatureType::ManyToOne,
                     required_file_keywords: None,
+                    file_counter: None
                 },
                 Stage{
                     label: "make_4d".to_string(),
                     preferred_computer: None,
-                    completion_file_pattern: Regex::new(r"results/nii4D_[^_]+nii$").unwrap(),
+                    completion_file_pattern: String::from(r"results/nii4D_[^_]+nii$"),
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
-                    signature_type: SignatureType::ManyToOne,
                     required_file_keywords: None,
+                    file_counter: None
                 },
                 Stage{
                     label: "dsi_studio_source".to_string(),
                     preferred_computer: None,
-                    completion_file_pattern: Regex::new(r"work/.*src(.gz)?$").unwrap(),
+                    completion_file_pattern: String::from(r"work/.*src(.gz)?$"),
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-work".to_string(),
-                    signature_type: SignatureType::OneToOne,
                     required_file_keywords: None,
+                    file_counter: None
                 },
                 Stage{
                     label: "dsi_studio_fib".to_string(),
                     preferred_computer: None,
-                    completion_file_pattern: Regex::new(r"results/.*fib(.gz)?$").unwrap(),
+                    completion_file_pattern: String::from(r"results/.*fib(.gz)?$"),
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
-                    signature_type: SignatureType::OneToOne,
                     required_file_keywords: None,
+                    file_counter: None
                 },
                 Stage{
                     label: "dsi_studio_export".to_string(),
                     preferred_computer: None,
-                    completion_file_pattern: Regex::new(r"results/.*nii.gz").unwrap(),
+                    completion_file_pattern: String::from(r"results/.*nii.gz"),
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
-                    signature_type: SignatureType::OneToMany,
                     required_file_keywords: Some(vec!["qa" ,"iso", "fa", "ad", "rd"].iter().map(|thing| thing.to_string()).collect()),
+                    file_counter: None
                 },
             ],
         };
         let diffusion_calc_nlsam = PipeStatusConfig{
             label: "diffusion_calc_nlsam".to_string(),
             preferred_computer: Some(String::from("civmcluster1")),
+            substitutions: SubstitutionTable {
+                base: None,
+                param0: None,
+                prefix: None,
+                sep: None,
+                program: None,
+                suffix: None
+            },
             stages: vec![
                 Stage{
                     label: "co_reg".to_string(),
                     preferred_computer: None,
-                    completion_file_pattern: Regex::new(r"results/co_reg.*headfile").unwrap(),
+                    completion_file_pattern: String::from(r"results/co_reg.*headfile"),
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
-                    signature_type: SignatureType::ManyToOne,
                     required_file_keywords: None,
+                    file_counter: None
                 },
                 Stage{
                     label: "make_4d".to_string(),
                     preferred_computer: None,
-                    completion_file_pattern: Regex::new(r"results/nii4D_[^_]+nii$").unwrap(),
+                    completion_file_pattern: String::from(r"results/nii4D_[^_]+nii$"),
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
-                    signature_type: SignatureType::ManyToOne,
                     required_file_keywords: None,
+                    file_counter: None
                 },
                 Stage{
                     label: "make_4d_nlsam".to_string(),
                     preferred_computer: None,
-                    completion_file_pattern: Regex::new(r"results/nii4D_[^_]+?NLSAM.nii$").unwrap(),
+                    completion_file_pattern: String::from(r"results/nii4D_[^_]+?NLSAM.nii$"),
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
-                    signature_type: SignatureType::ManyToOne,
                     required_file_keywords: None,
+                    file_counter: None
                 },
                 Stage{
                     label: "dsi_studio_source".to_string(),
                     preferred_computer: Some(String::from("delos")),
-                    completion_file_pattern: Regex::new(r"work/.*src(.gz)?$").unwrap(),
+                    completion_file_pattern: String::from(r"work/.*src(.gz)?$"),
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work".to_string(),
-                    signature_type: SignatureType::OneToOne,
                     required_file_keywords: None,
+                    file_counter: None
                 },
                 Stage{
                     label: "dsi_studio_fib".to_string(),
                     preferred_computer: Some(String::from("delos")),
-                    completion_file_pattern: Regex::new(r"results/.*fib(.gz)?$").unwrap(),
+                    completion_file_pattern: String::from(r"results/.*fib(.gz)?$"),
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
-                    signature_type: SignatureType::OneToOne,
                     required_file_keywords: None,
+                    file_counter: None
                 },
                 Stage{
                     label: "dsi_studio_export".to_string(),
                     preferred_computer: Some(String::from("delos")),
-                    completion_file_pattern: Regex::new(r"results/.*nii.gz").unwrap(),
+                    completion_file_pattern: String::from("results/.*nii.gz"),
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
-                    signature_type: SignatureType::OneToMany,
                     required_file_keywords: Some(vec!["qa" ,"iso", "fa", "ad", "rd"].iter().map(|thing| thing.to_string()).collect()),
+                    file_counter: None
                 },
             ],
         };
@@ -245,6 +335,8 @@ impl ConfigCollection {
 
         let pipe = self.get_pipe(pipe_name).expect("invalid pipeline name!");
 
+
+
         let mut pref_computer = pipe.preferred_computer.clone().unwrap_or(this_host.clone());
 
         let mut stage_statuses:Vec<Status> = vec![];
@@ -253,6 +345,7 @@ impl ConfigCollection {
 
             //println!("building request for {} ...",stage.label);
             let mut request = Request{
+                sub_table: pipe.sub_table(),
                 stage: stage.clone(),
                 big_disk:None,
                 run_number_list:args.runno_list.clone(),
