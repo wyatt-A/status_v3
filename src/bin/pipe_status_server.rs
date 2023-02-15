@@ -4,6 +4,7 @@ use regex::Regex;
 use status_v3::pipe::{ConfigCollection, ConfigCollectionError, SubstitutionTable};
 use status_v3::request::{Request, Response, ServerError};
 use status_v3::request;
+use status_v3::server::process_request;
 use status_v3::stage::FileCheckError;
 use status_v3::status::Status;
 
@@ -23,44 +24,14 @@ fn main(){
     }
 }
 
-
 fn run_server(request_json:&str){
-
     let re = match process_request(request_json) {
         Err(e) => Response::Error(e),
         Ok(stat) => Response::Success(stat)
     };
     let resp_string = serde_json::to_string(&re).expect("unable to serialize response");
     print!("||{}||",resp_string);
-
 }
-
-fn process_request(req:&str) -> Result<Status,ServerError> {
-
-    // clean request
-    println!("raw request = {:?}",req);
-
-    println!("loading request ...");
-    let mut req:Request = serde_json::from_str(req).map_err(|_|ServerError::RequestParse)?;
-
-    println!("parsed request = {:?}",req);
-
-    let big_disk = match &req.big_disk {
-        Some(str) => str.to_string(),
-        None => std::env::var("BIGGUS_DISKUS").map_err(|_|ServerError::BIGGUS_DISKUS_NotSet)?
-    };
-    println!("running file check ...");
-
-
-    let mut table = req.sub_table.to_hash();
-    table.insert(String::from("BIGGUS_DISKUS"),big_disk.to_string());
-    table.insert(String::from("PARAM0"),req.run_number_list[0].to_string());
-    table.insert(String::from("BASE"),req.base_runno.clone().expect("base runno must be defined!"));
-
-    let status = req.stage.file_check(&big_disk,&req.run_number_list,req.base_runno,&table).map_err(|e|ServerError::FileCheckError(e))?;
-    Ok(status)
-}
-
 
 
 #[test]
@@ -89,14 +60,16 @@ fn server_test(){
 
     let pipe = conf_col.get_pipe("diffusion_calc_nlsam").unwrap();
 
-    let stage = pipe.stages[0].clone();
+
+
+    let stage = pipe.stages[11].clone();
 
     let mut request = Request{
         sub_table: pipe.sub_table(),
         stage: stage.clone(),
         big_disk:None,
         run_number_list:vec!["N60218_m00".to_string()],
-        base_runno:Some(String::from("N60218")),
+        base_runno:String::from("N60218"),
     };
 
     let stat = process_request(&request.to_json());

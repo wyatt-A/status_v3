@@ -1,10 +1,97 @@
+use std::collections::HashMap;
 use std::net::TcpStream;
+use std::process::Command;
 use std::time::Duration;
 use regex::Regex;
+use serde::{Serialize,Deserialize};
 use ssh_rs::{LocalSession, LocalShell, ssh};
 use crate::request::{Request, Response, ServerError};
+use crate::server::process_request;
 
-pub struct Host {
+#[derive(Serialize,Deserialize,Debug,Clone)]
+pub struct DbResponse {
+    runno_exists:HashMap<String,i32>
+}
+
+#[derive(Serialize,Deserialize,Debug,Clone)]
+pub enum DBStatus {
+    Found,
+    NotFound,
+    Unknown,
+}
+
+impl DbResponse {
+    pub fn to_hash(&self) -> HashMap<String,DBStatus> {
+        let mut output = HashMap::<String,DBStatus>::new();
+        for (thing,stat) in &self.runno_exists {
+            let db_stat = match stat {
+                1 => DBStatus::Found,
+                0 => DBStatus::NotFound,
+                -1 => DBStatus::Unknown,
+                _=> DBStatus::Unknown
+            };
+            output.insert(thing.clone(),db_stat);
+        }
+        output
+    }
+}
+
+
+pub fn database_check(host:&mut RemoteHost,thing:&str){
+    let shell_command = format!("civm_db_check --runno={}",thing);
+    let str = r#"(\{"runno_exists":.*?\}\})"#;
+    let re = Regex::new(str).expect("invalid regex");
+    let cap = host.run_and_listen(&shell_command,re).expect("response not captured");
+    println!("capture = {}",cap);
+}
+
+
+pub enum Host {
+    Local,
+    Remote(RemoteHost)
+}
+
+
+
+
+impl Host {
+    pub fn submit_request(&mut self,req:&Request) -> Response {
+        match self {
+            Host::Remote(remote_host) => remote_host.submit_request(req),
+            Host::Local => {
+                match process_request(&req.to_json()) {
+                    Err(e) => Response::Error(e),
+                    Ok(stat) => Response::Success(stat)
+                }
+            }
+        }
+    }
+
+    pub fn civm_db_check(&mut self,thing:&str) {
+        let cmd = "civm_db_check";
+        let args = format!("--runno={}",thing);
+        let re = Regex::new(r#"(\{"runno_exists":.*?\}\})"#).expect("invalid regex");
+        let cap = match self {
+            Host::Remote(computer) => {
+                println!("running db check remotely ...");
+                computer.run_and_listen(&format!("{} {}",cmd,args),re).expect("no response captured")
+            }
+            Host::Local => {
+                println!("running db check locally ...");
+                let o = Command::new(cmd).arg(args).output().expect("failed to launch db check");
+                let r = String::from_utf8(o.stdout.clone()).unwrap();
+                re.captures(&r).expect("command response not matched").get(1).expect("command response").as_str().to_string()
+            }
+        };
+
+        let dbr:DbResponse = serde_json::from_str(&cap).expect("unable to deserialize database response");
+        let hash = dbr.to_hash();
+
+        println!("db response hash = {:?}",hash);
+    }
+}
+
+pub struct RemoteHost {
     hostname:String,
     user_name:String,
     port:u32,
@@ -20,7 +107,7 @@ pub enum ConnectionError {
     UnableToInitialize
 }
 
-impl Host {
+impl RemoteHost {
     pub fn new(hostname: &str, user_name: &str, port: u32) -> Result<Self, ConnectionError> {
         let ssh_dir = std::env::home_dir().expect("cannot get home dir").join(".ssh");
         let pub_keys = utils::find_files(&ssh_dir,"pub",true).ok_or(ConnectionError::NoPublicKeysFound)?;
@@ -32,7 +119,7 @@ impl Host {
             }
         }).ok_or(ConnectionError::UnableToConnect)?;
         let shell = session.open_shell().map_err(|_| ConnectionError::UnableToStartShell)?;
-        Ok(Host {
+        Ok(RemoteHost {
             hostname: hostname.to_string(),
             user_name: user_name.to_string(),
             port,
@@ -85,10 +172,10 @@ impl Host {
         }
     }
 
-
     pub fn submit_request(&mut self,request:&Request) -> Response {
         let req_string = serde_json::to_string(request).expect("unable to serialize request");
         let command_string = format!("pipe_status_server --request-string='{}'",req_string);
+        println!("server_command = {}",command_string);
         let re = Regex::new(r"\|\|(.*)\|\|").expect("incorrect regular expression");
         let json_response = self.run_and_listen(&command_string,re);
         match json_response {

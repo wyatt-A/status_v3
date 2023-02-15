@@ -9,10 +9,10 @@ pub struct Args {
 
 #[derive(clap::Args,Debug)]
 pub struct ClientArgs {
+    pub base_runno:String,
     pub last_pipeline:String,
-    pub runno_list:Vec<String>,
     #[clap(long)]
-    pub base_runno:Option<String>,
+    pub runno_list:Vec<String>,
     #[clap(short, long)]
     pub big_disk:Option<Vec<String>>,
     #[clap(short, long)]

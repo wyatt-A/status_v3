@@ -9,7 +9,7 @@ pub struct Request {
     pub stage:Stage,
     pub big_disk:Option<String>,
     pub run_number_list:Vec<String>,
-    pub base_runno:Option<String>,
+    pub base_runno:String,
 }
 
 
@@ -21,6 +21,8 @@ impl Request {
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub enum ServerError {
+    Crash,
+    BadResponse,
     RequestParse,
     BIGGUS_DISKUS_NotSet,
     FileCheckError(FileCheckError)

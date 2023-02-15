@@ -34,19 +34,19 @@ pub enum FileCheckError {
 
 impl Stage {
 
-    pub fn file_check(&self, big_disk:&String, runno_list:&Vec<String>, base_runno:Option<String>,sub_table:&HashMap<String,String>) -> Result<Status,FileCheckError> {
+    pub fn file_check(&self, _big_disk:&String, _runno_list:&Vec<String>, _base_runno:&String,sub_table:&HashMap<String,String>) -> Result<Status,FileCheckError> {
 
         let big_disk_resolved = substitute(&self.directory_pattern,sub_table)?;
         let file_completion_pattern = substitute(&self.completion_file_pattern,sub_table)?;
 
 
-        println!("big disk resolved = {}",big_disk_resolved);
+        //println!("big disk resolved = {}",big_disk_resolved);
 
         let matched_files = utils::filesystem_search(Path::new(&big_disk_resolved),Some(Regex::new(&file_completion_pattern).map_err(|_|FileCheckError::InvalidRegex)?));
 
-        for file in &matched_files {
-            println!("{}",file);
-        }
+        // for file in &matched_files {
+        //     println!("{}",file);
+        // }
 
         let n_matched_files = matched_files.len();
 
@@ -88,10 +88,8 @@ impl Stage {
 }
 
 fn substitute(thing_to_resolve:&String,sub_table:&HashMap<String,String>) -> Result<String,FileCheckError> {
-
     let re = Regex::new(r"(\$\{[[:alnum:]_]+\})").map_err(|_|FileCheckError::InvalidRegex)?;
     let mut output = thing_to_resolve.clone();
-
     for captures in re.captures_iter(&thing_to_resolve) {
         for cap_idx in 1..captures.len(){
             let cap:String = captures[cap_idx].to_string();
@@ -103,29 +101,9 @@ fn substitute(thing_to_resolve:&String,sub_table:&HashMap<String,String>) -> Res
                 },
                 None => Err(FileCheckError::SubstitutionNotResolved(subtr.to_string()))?
             };
-            println!("rep = {}",rep);
             output = output.replace(&format!("{}",&captures[cap_idx]),&rep);
         }
     }
-
-
-
-    // re.captures_iter(&thing_to_resolve).for_each(|captures| {
-    //     for cap_idx in 1..captures.len(){
-    //         let cap:String = captures[cap_idx].to_string();
-    //         // we include the ${ } in capture because we want to replace it, but it is not in the hash
-    //
-    //         let rep = match sub_table.get(&cap[2..cap.len()-1]) {
-    //             Some(sub) => {
-    //                 println!("sub={}",sub);
-    //                 sub.to_string()
-    //             },
-    //             None => cap // this needs to be an error
-    //         };
-    //         println!("rep = {}",rep);
-    //         output = output.replace(&format!("{}",&captures[cap_idx]),&rep);
-    //     }
-    // });
     Ok(output)
 }
 

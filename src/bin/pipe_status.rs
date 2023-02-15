@@ -4,7 +4,7 @@ use clap::{Parser};
 use clap;
 use ssh_config::{ConfigValue, SSHConfig};
 use dirs;
-use status_v3::host::{ConnectionError, Host};
+use status_v3::host::{ConnectionError, Host, RemoteHost};
 use status_v3::pipe::{ConfigCollection, ConfigCollectionError};
 use whoami;
 use status_v3::args::{Args, Action, ClientArgs, GenTemplateArgs};
@@ -36,12 +36,10 @@ fn run_client(args:&ClientArgs){
 
     //let this_exe = std::env::current_exe().expect("cannot determine this program!");
 
-
     let home_dir:PathBuf = dirs::home_dir().expect("cannot get home directory!");
     let ssh_dir = home_dir.join(".ssh");
     let ssh_config = ssh_dir.join("config");
     let this_host = utils::computer_name();
-
 
     let mut this_user = std::env::var("USER").expect("unable to get environment variable");
     if this_user.is_empty(){
@@ -118,7 +116,7 @@ fn run_client(args:&ClientArgs){
 
     // connect to servers
     println!("connecting to remote hosts ...");
-    let mut ssh_connections = HashMap::<String,Host>::new();
+    let mut host_connections = HashMap::<String, Host>::new();
     for host in &needed_hosts {
         let host_config = ssh_conf.query(host);
         let username = host_config.get("User");
@@ -128,39 +126,65 @@ fn run_client(args:&ClientArgs){
             Some(user) => user.to_string()
         };
 
-        match Host::new(host, username.as_str(), 22) {
-            Err(conn_error) =>{
-                match conn_error {
-                    ConnectionError::NoPublicKeysFound => {
-                        println!("no ssh public keys found in {:?}\nRun ssh-keygen and make sure you have password-less access to {}", ssh_dir, host);
-                        return;
-                    }
-                    ConnectionError::UnableToConnect => {
-                        println!("unable to connect to {}. Make sure you have password-less access!\nYou may need to run ssh-copy-id {}@{}", host, username, host);
-                        return
-                    }
-                    ConnectionError::UnableToStartShell => {
-                        println!("unable to start a shell on {}.", host);
-                        return
-                    }
-                    _=> {}
-                }
-            } ,
-            Ok(mut connected_host) => {
-                match connected_host.check_for_server_bin() {
-                    Err(_) => {
-                        println!("unable to successfully talk to status server on {}.", host);
-                        return
-                    }
-                    Ok(_) => {
-                        ssh_connections.insert(host.to_string(), connected_host);
-                    }
-                }
+        // check if the needed host is this host
+        match host == this_host.as_str(){
+            true => {
+                host_connections.insert(host.to_string(), Host::Local);
             }
-        };
+            false => {
+                match RemoteHost::new(host, username.as_str(), 22) {
+                    Err(conn_error) =>{
+                        match conn_error {
+                            ConnectionError::NoPublicKeysFound => {
+                                println!("no ssh public keys found in {:?}\nRun ssh-keygen and make sure you have password-less access to {}", ssh_dir, host);
+                                return;
+                            }
+                            ConnectionError::UnableToConnect => {
+                                println!("unable to connect to {}. Make sure you have password-less access!\nYou may need to run ssh-copy-id {}@{}", host, username, host);
+                                return
+                            }
+                            ConnectionError::UnableToStartShell => {
+                                println!("unable to start a shell on {}.", host);
+                                return
+                            }
+                            _=> {}
+                        }
+                    } ,
+                    Ok(mut connected_host) => {
+                        match connected_host.check_for_server_bin() {
+                            Err(_) => {
+                                println!("unable to successfully talk to status server on {}.", host);
+                                return
+                            }
+                            Ok(_) => {
+                                host_connections.insert(host.to_string(), Host::Remote(connected_host));
+                            }
+                        }
+                    }
+                };
+            }
+        }
     }
 
-    let (status,prog) = conf_col.pipe_status(&args.last_pipeline,&args,&mut ssh_connections,&this_host,&big_disks);
+
+    // let mut delos = host_connections.get_mut("delos").unwrap();
+    //
+    // match delos {
+    //     Host::Remote(computer) => database_check(computer,"N12345"),
+    //     _=> {}
+    // }
+
+
+    let p = conf_col.get_pipe(&args.last_pipeline).expect("last pipe not known");
+    let a = p.archive.clone().expect("no archive defined for pipe");
+    println!("{:?}",a);
+    let archive_hostname = a.preferred_computer.unwrap_or(this_host.clone());
+    println!("archive hostname: {}",archive_hostname);
+    let h = host_connections.get_mut(&archive_hostname).expect("cannot get host from host connections");
+    h.civm_db_check("N60267");
+
+
+    let (status,prog) = conf_col.pipe_status(&args.last_pipeline, &args, &mut host_connections, &this_host, &big_disks);
 
     for s in &status{
         let txt = serde_json::to_string_pretty(s).expect("cannot convert to string");

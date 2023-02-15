@@ -7,6 +7,11 @@ sep = ""
 program = "dsi_studio"
 suffix = ""
 
+[pipeline_headfile]
+completion_file_pattern = "results/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}.headfile"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+file_counter  = {type="Constant",count = 1}
+
 [[stages]]
 label = "co_reg"
 completion_file_pattern = "results/co_reg.*headfile"
@@ -15,36 +20,34 @@ file_counter  = {type="Constant",count = 1}
 
 [[stages]]
 label = "make_4d"
-completion_file_pattern = "results/nii4D_[^_]+nii$"
+completion_file_pattern = "results/nii4D_${BASE}[.]nii$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 
 [[stages]]
 # create dwi average pre nlsam
+# also creates a b0average, we have a testing problem in that multi-shell will create multiple dwi's
+# we're ignoring that for now.
 label = "make_avg"
-completion_file_pattern = "results/nii4D_.*dwi.nii([.]gz)?$"
+completion_file_pattern = "results/nii4D_${BASE}_dwi.nii([.]gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-# would love to test all however multi-shell and single b0 blow that up.
-# required_file_keywords = [ "b0avg" ,"dwi" ]
 
 [[stages]]
 # create a mask from avg
 label = "make_mask"
-# todo(expand to specified bits)
-#completion_file_pattern = "results/ni4D_${BASE}_mask.nii([.]gz)?$"
-completion_file_pattern = "results/nii4D_.*_mask.nii([.]gz)?$"
+completion_file_pattern = "results/nii4D_${BASE}_mask.nii([.]gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 
 [[stages]]
 # crop mask
 label = "crop_mask"
-completion_file_pattern = "results/.*_mask_cropped.nii([.]gz)?$"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+completion_file_pattern = "work/.*_mask_cropped.nii([.]gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
 
 [[stages]]
 # crop 4d
 label = "crop_4d"
-completion_file_pattern = "results/.*${BASE}_cropped.nii([.]gz)?$"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+completion_file_pattern = "work/.*${BASE}_cropped.nii([.]gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
 
 # chunk up the cropped 4d
 # Not going to check beause we dont know how many.
@@ -87,23 +90,27 @@ completion_file_pattern = "results/nii4D_[^_]+?NLSAM.nii$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 
 [[stages]]
+preferred_computer = "delos"
 label = "dsi_studio_source"
 completion_file_pattern = "work/.*src(.gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
-signature_type = "OneToOne"
-preferred_computer = "delos"
 
 [[stages]]
+preferred_computer = "delos"
 label = "dsi_studio_fib"
 completion_file_pattern = "results/.*fib(.gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-signature_type = "OneToOne"
-preferred_computer = "delos"
 
 [[stages]]
-label = "dsi_studio_export"
-completion_file_pattern = "results/.*nii.gz"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-signature_type = "OneToMany"
-required_file_keywords = [ "qa" ,"iso", "fa", "ad", "rd" ]
 preferred_computer = "delos"
+label = "dsi_studio_export"
+# beceuase of chaos regarding the existience of nqa/qa we dont test for it, and presume we're complete if we have most things
+completion_file_pattern = "results/.*${BASE}NLSAM.*(iso|fa|ad|rd|gfa)[.]nii([.]gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+# count needs to match group from completion_file_pattern
+file_counter  = {type="Constant",count = 5}
+
+[archive]
+preferred_computer = "delos"
+# after headfile name is resolved, ask the archive if it is archived
+matches_headfile = true

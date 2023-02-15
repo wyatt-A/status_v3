@@ -1,10 +1,10 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use regex::Regex;
-use crate::stage::{Stage};
+use crate::stage::{FileCounter, Stage};
 use serde::{Serialize,Deserialize};
 use crate::args::ClientArgs;
-use crate::host::Host;
+use crate::host::{Host, RemoteHost};
 use crate::request::{Request, Response};
 use crate::status::{Status, StatusType};
 
@@ -13,7 +13,22 @@ pub struct PipeStatusConfig {
     pub label:String,
     pub preferred_computer:Option<String>,
     pub substitutions:SubstitutionTable,
+    pub pipeline_headfile:Option<PipelineHeadfile>,
     pub stages:Vec<Stage>,
+    pub archive:Option<ArchiveCheckParams>,
+}
+
+#[derive(Serialize,Deserialize,Debug,Clone)]
+pub struct PipelineHeadfile {
+    completion_file_pattern:String,
+    directory_pattern:String,
+    file_counter:Option<FileCounter>,
+}
+
+#[derive(Serialize,Deserialize,Debug,Clone)]
+pub struct ArchiveCheckParams {
+    pub preferred_computer:Option<String>,
+    pub matches_headfile:bool,
 }
 
 
@@ -142,6 +157,7 @@ impl ConfigCollection {
                 program: None,
                 suffix: None
             },
+            pipeline_headfile: None,
             stages: vec![
                 Stage{
                     label: "make_header".to_string(),
@@ -168,6 +184,7 @@ impl ConfigCollection {
                     file_counter: None
                 },
             ],
+            archive: None
         };
         let diffusion_calc = PipeStatusConfig{
             label: "diffusion_calc".to_string(),
@@ -180,6 +197,7 @@ impl ConfigCollection {
                 program: None,
                 suffix: None
             },
+            pipeline_headfile: None,
             stages: vec![
                 Stage{
                     label: "co_reg".to_string(),
@@ -222,6 +240,7 @@ impl ConfigCollection {
                     file_counter: None
                 },
             ],
+            archive: None
         };
         let diffusion_calc_nlsam = PipeStatusConfig{
             label: "diffusion_calc_nlsam".to_string(),
@@ -234,6 +253,7 @@ impl ConfigCollection {
                 program: None,
                 suffix: None
             },
+            pipeline_headfile: None,
             stages: vec![
                 Stage{
                     label: "co_reg".to_string(),
@@ -284,6 +304,7 @@ impl ConfigCollection {
                     file_counter: None
                 },
             ],
+            archive: None
         };
 
         let s = toml::to_string_pretty(&co_reg).expect("cannot serialize pipe config!");
@@ -330,16 +351,17 @@ impl ConfigCollection {
         self.configs.get(pipe_name)
     }
 
-    pub fn pipe_status(&self,pipe_name:&str,args:&ClientArgs,ssh_connections:&mut HashMap<String,Host>, this_host:&String, big_disks:&Option<HashMap<String, String>>) -> (Vec<Status>,f32) {
+    pub fn pipe_status(&self, pipe_name:&str, args:&ClientArgs, ssh_connections:&mut HashMap<String, Host>, this_host:&String, big_disks:&Option<HashMap<String, String>>) -> (Vec<Status>, f32) {
         println!("running stage checks for {} ...",pipe_name);
 
         let pipe = self.get_pipe(pipe_name).expect("invalid pipeline name!");
 
-
-
         let mut pref_computer = pipe.preferred_computer.clone().unwrap_or(this_host.clone());
 
         let mut stage_statuses:Vec<Status> = vec![];
+
+        // hold temp stages that are marked incomplete and also have a temporary stage attribute
+        let mut temp_stage_buffer:Vec<Stage> = vec![];
 
         for stage in &pipe.stages {
 
@@ -358,7 +380,6 @@ impl ConfigCollection {
                 None => {}
             }
 
-            let host = ssh_connections.get_mut(&pref_computer).expect("host not found! what happened??");
             request.big_disk = match &big_disks {
                 Some(disks) => {
                     match disks.get(&pref_computer) {
@@ -368,6 +389,9 @@ impl ConfigCollection {
                 }
                 None => None
             };
+
+            let host = ssh_connections.get_mut(&pref_computer).expect("host not found! what happened??");
+
             println!("sending request to {}",pref_computer);
             let stat = match host.submit_request(&request) {
                 Response::Success(status) => status,
@@ -382,7 +406,6 @@ impl ConfigCollection {
 
             match &stat.progress {
                 StatusType::NotStarted => { // if a pipe isn't started we have to consider it being a pipe
-
                     match self.get_pipe(&stage.label) {
                         Some(pipe) => {
                             let (children,progress) = self.pipe_status(&pipe.label,args,ssh_connections,this_host,big_disks);
@@ -408,6 +431,7 @@ impl ConfigCollection {
                 _=> stage_statuses.push(stat)
             }
         }
+
 
         // integrate progress
         let mut total_progress:f32 = 0.0;
