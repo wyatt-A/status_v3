@@ -17,6 +17,8 @@ pub struct ClientArgs {
     pub big_disk:Option<Vec<String>>,
     #[clap(short, long)]
     pub pipe_configs:Option<PathBuf>,
+    // #[clap(short, long)]
+    // pub base_expand:Option<usize>,
 }
 
 #[derive(clap::Subcommand,Debug)]

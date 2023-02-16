@@ -10,7 +10,7 @@ use crate::server::process_request;
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct DbResponse {
-    runno_exists:HashMap<String,i32>
+    exists:HashMap<String,i32>
 }
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
@@ -23,7 +23,7 @@ pub enum DBStatus {
 impl DbResponse {
     pub fn to_hash(&self) -> HashMap<String,DBStatus> {
         let mut output = HashMap::<String,DBStatus>::new();
-        for (thing,stat) in &self.runno_exists {
+        for (thing,stat) in &self.exists {
             let db_stat = match stat {
                 1 => DBStatus::Found,
                 0 => DBStatus::NotFound,
@@ -36,7 +36,6 @@ impl DbResponse {
     }
 }
 
-
 pub fn database_check(host:&mut RemoteHost,thing:&str){
     let shell_command = format!("civm_db_check --runno={}",thing);
     let str = r#"(\{"runno_exists":.*?\}\})"#;
@@ -45,13 +44,10 @@ pub fn database_check(host:&mut RemoteHost,thing:&str){
     println!("capture = {}",cap);
 }
 
-
 pub enum Host {
     Local,
     Remote(RemoteHost)
 }
-
-
 
 
 impl Host {
@@ -67,27 +63,42 @@ impl Host {
         }
     }
 
-    pub fn civm_db_check(&mut self,thing:&str) {
+    pub fn civm_db_exists(&mut self, things:&Vec<String>) -> HashMap<String,DBStatus> {
         let cmd = "civm_db_check";
-        let args = format!("--runno={}",thing);
-        let re = Regex::new(r#"(\{"runno_exists":.*?\}\})"#).expect("invalid regex");
+        let args:Vec<String> = things.iter().map(|thing|format!("--exists={}",thing)).collect();
+        let re = Regex::new(r#"(\{"exists":.*?\}\})"#).expect("invalid regex");
         let cap = match self {
             Host::Remote(computer) => {
                 println!("running db check remotely ...");
-                computer.run_and_listen(&format!("{} {}",cmd,args),re).expect("no response captured")
+                let remote_cmd = format!("{} {}",cmd,args.join(" "));
+                computer.run_and_listen(&remote_cmd,re).expect("no response captured")
             }
             Host::Local => {
                 println!("running db check locally ...");
-                let o = Command::new(cmd).arg(args).output().expect("failed to launch db check");
+                let o = Command::new(cmd).args(&args).output().expect("failed to launch db check");
                 let r = String::from_utf8(o.stdout.clone()).unwrap();
                 re.captures(&r).expect("command response not matched").get(1).expect("command response").as_str().to_string()
             }
         };
 
         let dbr:DbResponse = serde_json::from_str(&cap).expect("unable to deserialize database response");
-        let hash = dbr.to_hash();
+        let h = dbr.to_hash();
+        println!("{:?}",h);
+        h
+    }
 
-        println!("db response hash = {:?}",hash);
+    pub fn civm_in_db(&mut self,things:&Vec<String>) -> bool {
+        let results = self.civm_db_exists(things);
+        let mut n_found = 0;
+        for (_,stat) in &results {
+            match stat {
+                DBStatus::Found => {
+                    n_found = n_found + 1;
+                }
+                _=> {}
+            }
+        }
+        n_found == results.len()
     }
 }
 

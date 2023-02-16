@@ -166,24 +166,6 @@ fn run_client(args:&ClientArgs){
         }
     }
 
-
-    // let mut delos = host_connections.get_mut("delos").unwrap();
-    //
-    // match delos {
-    //     Host::Remote(computer) => database_check(computer,"N12345"),
-    //     _=> {}
-    // }
-
-
-    let p = conf_col.get_pipe(&args.last_pipeline).expect("last pipe not known");
-    let a = p.archive.clone().expect("no archive defined for pipe");
-    println!("{:?}",a);
-    let archive_hostname = a.preferred_computer.unwrap_or(this_host.clone());
-    println!("archive hostname: {}",archive_hostname);
-    let h = host_connections.get_mut(&archive_hostname).expect("cannot get host from host connections");
-    h.civm_db_check("N60267");
-
-
     let (status,prog) = conf_col.pipe_status(&args.last_pipeline, &args, &mut host_connections, &this_host, &big_disks);
 
     for s in &status{

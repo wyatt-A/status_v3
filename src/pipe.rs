@@ -1,7 +1,8 @@
+use std::borrow::BorrowMut;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use regex::Regex;
-use crate::stage::{FileCounter, Stage};
+use crate::stage::{FileCheckError, FileCounter, Stage};
 use serde::{Serialize,Deserialize};
 use crate::args::ClientArgs;
 use crate::host::{Host, RemoteHost};
@@ -351,17 +352,54 @@ impl ConfigCollection {
         self.configs.get(pipe_name)
     }
 
+    pub fn is_pipe_output_archived(&self,pipe_name:&str,args:&ClientArgs,ssh_connections:&mut HashMap<String, Host>,this_host:&String) -> bool {
+
+        let pipe = self.get_pipe(pipe_name).expect("invalid pipeline name!");
+        let archive_settings = pipe.archive.clone().unwrap();
+
+        if !archive_settings.matches_headfile {
+            panic!("get name of thing from headfile not yet implemented");
+        }
+
+        let preferred_computer = archive_settings.preferred_computer.unwrap_or(this_host.clone());
+        let host = ssh_connections.get_mut(&preferred_computer).expect(&format!("host {} not found",preferred_computer));
+
+        let file_pattern = pipe.pipeline_headfile.clone().expect("pipeline headfile must be defined").completion_file_pattern.clone();
+
+        let mut subs = pipe.substitutions.to_hash();
+
+        if !args.runno_list.is_empty() {
+            subs.insert(String::from("PARAM0"),args.runno_list[0].to_string());
+        }
+        subs.insert(String::from("BASE"),args.base_runno.clone());
+        let resolved_filename = substitute(&file_pattern,&subs).expect("substitions failed");
+
+        let filename =Path::new(&resolved_filename).with_extension("");
+        let filename = filename.file_name().unwrap();
+        host.civm_in_db(&vec![filename.to_string_lossy().to_string()])
+    }
+
     pub fn pipe_status(&self, pipe_name:&str, args:&ClientArgs, ssh_connections:&mut HashMap<String, Host>, this_host:&String, big_disks:&Option<HashMap<String, String>>) -> (Vec<Status>, f32) {
         println!("running stage checks for {} ...",pipe_name);
 
         let pipe = self.get_pipe(pipe_name).expect("invalid pipeline name!");
+
+        println!("archive is some = {}",pipe.archive.is_some());
+
+        if pipe.archive.is_some() && self.is_pipe_output_archived(pipe_name, args, ssh_connections, this_host) {
+            return (vec![Status{
+                label:"archive".to_string(),
+                progress: StatusType::Complete,
+                children: vec![]
+            }],1.0)
+        }
 
         let mut pref_computer = pipe.preferred_computer.clone().unwrap_or(this_host.clone());
 
         let mut stage_statuses:Vec<Status> = vec![];
 
         // hold temp stages that are marked incomplete and also have a temporary stage attribute
-        let mut temp_stage_buffer:Vec<Stage> = vec![];
+        //let mut temp_stage_buffer:Vec<Stage> = vec![];
 
         for stage in &pipe.stages {
 
@@ -448,4 +486,24 @@ impl ConfigCollection {
         (stage_statuses,frac_progress)
     }
 
+}
+
+pub fn substitute(thing_to_resolve:&String,sub_table:&HashMap<String,String>) -> Result<String,FileCheckError> {
+    let re = Regex::new(r"(\$\{[[:alnum:]_]+\})").map_err(|_|FileCheckError::InvalidRegex)?;
+    let mut output = thing_to_resolve.clone();
+    for captures in re.captures_iter(&thing_to_resolve) {
+        for cap_idx in 1..captures.len(){
+            let cap:String = captures[cap_idx].to_string();
+            // we include the ${ } in capture because we want to replace it, but it is not in the hash
+            let subtr = &cap[2..cap.len()-1];
+            let rep = match sub_table.get(subtr) {
+                Some(sub) => {
+                    sub.to_string()
+                },
+                None => Err(FileCheckError::SubstitutionNotResolved(subtr.to_string()))?
+            };
+            output = output.replace(&format!("{}",&captures[cap_idx]),&rep);
+        }
+    }
+    Ok(output)
 }
