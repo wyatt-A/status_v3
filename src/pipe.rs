@@ -1,11 +1,10 @@
-use std::borrow::BorrowMut;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use regex::Regex;
 use crate::stage::{FileCheckError, FileCounter, Stage};
 use serde::{Serialize,Deserialize};
 use crate::args::ClientArgs;
-use crate::host::{Host, RemoteHost};
+use crate::host_connection::PipeStatusHost;
 use crate::request::{Request, Response};
 use crate::status::{Status, StatusType};
 
@@ -352,7 +351,7 @@ impl ConfigCollection {
         self.configs.get(pipe_name)
     }
 
-    pub fn is_pipe_output_archived(&self,pipe_name:&str,args:&ClientArgs,ssh_connections:&mut HashMap<String, Host>,this_host:&String) -> bool {
+    pub fn is_pipe_output_archived(&self, pipe_name:&str, args:&ClientArgs, ssh_connections:&mut HashMap<String, PipeStatusHost>, this_host:&String) -> bool {
 
         let pipe = self.get_pipe(pipe_name).expect("invalid pipeline name!");
         let archive_settings = pipe.archive.clone().unwrap();
@@ -379,7 +378,7 @@ impl ConfigCollection {
         host.civm_in_db(&vec![filename.to_string_lossy().to_string()])
     }
 
-    pub fn pipe_status(&self, pipe_name:&str, args:&ClientArgs, ssh_connections:&mut HashMap<String, Host>, this_host:&String, big_disks:&Option<HashMap<String, String>>) -> (Vec<Status>, f32) {
+    pub fn pipe_status(&self, pipe_name:&str, args:&ClientArgs, ssh_connections:&mut HashMap<String, PipeStatusHost>, this_host:&String, big_disks:&Option<HashMap<String, String>>) -> (Vec<Status>, f32) {
         println!("running stage checks for {} ...",pipe_name);
 
         let pipe = self.get_pipe(pipe_name).expect("invalid pipeline name!");
@@ -498,7 +497,7 @@ impl ConfigCollection {
 
 }
 
-fn stage_stat(pref_computer:&String,pipe:&PipeStatusConfig,stage:&Stage, args:&ClientArgs, ssh_connections:&mut HashMap<String, Host>, big_disks:&Option<HashMap<String, String>>) -> Status {
+fn stage_stat(pref_computer:&String, pipe:&PipeStatusConfig, stage:&Stage, args:&ClientArgs, ssh_connections:&mut HashMap<String, PipeStatusHost>, big_disks:&Option<HashMap<String, String>>) -> Status {
     let mut pref_computer = pref_computer.clone();
     let mut request = Request{
         sub_table: pipe.sub_table(),

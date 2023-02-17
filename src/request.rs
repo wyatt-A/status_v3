@@ -1,5 +1,6 @@
 use crate::stage::{FileCheckError, Stage};
 use serde::{Serialize,Deserialize};
+use crate::host_connection::HostConnectionError;
 use crate::pipe::SubstitutionTable;
 use crate::status::Status;
 
@@ -24,7 +25,8 @@ pub enum ServerError {
     BadResponse,
     RequestParse,
     BIGGUS_DISKUS_NotSet,
-    FileCheckError(FileCheckError)
+    FileCheckError(FileCheckError),
+    HostConnectionError(HostConnectionError)
 }
 
 #[derive(Serialize,Deserialize,Debug,Clone)]

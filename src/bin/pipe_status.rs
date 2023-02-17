@@ -4,9 +4,10 @@ use clap::Parser;
 use clap;
 use ssh_config::SSHConfig;
 use dirs;
-use status_v3::host::{ConnectionError, Host, RemoteHost};
+use status_v3::host::{ConnectionError, PipeStatusHost, RemoteHost};
 use status_v3::pipe::{ConfigCollection, ConfigCollectionError};
 use status_v3::args::{Args, Action, ClientArgs, GenTemplateArgs};
+use status_v3::host_connection::{connect_to_hosts, HostConnectionError, RemoteHostConnection};
 
 
 struct BatchCheck {
@@ -42,14 +43,12 @@ fn run_client(args:&ClientArgs){
     //let this_exe = std::env::current_exe().expect("cannot determine this program!");
 
     let home_dir:PathBuf = dirs::home_dir().expect("cannot get home directory!");
-    let ssh_dir = home_dir.join(".ssh");
-    let ssh_config = ssh_dir.join("config");
     let this_host = utils::computer_name();
 
-    let mut this_user = std::env::var("USER").expect("unable to get environment variable");
-    if this_user.is_empty(){
-        this_user = std::env::var("USERNAME").expect("unable to get environment variable");
-    }
+    // let mut this_user = std::env::var("USER").expect("unable to get environment variable");
+    // if this_user.is_empty(){
+    //     this_user = std::env::var("USERNAME").expect("unable to get environment variable");
+    // }
 
     println!("loading config files ...");
 
@@ -88,73 +87,23 @@ fn run_client(args:&ClientArgs){
         }
     };
 
-    println!("checking ssh configurations ...");
-    // load ssh config and check for existence
-    if !ssh_config.exists(){
-        println!("no ssh config found! You need to set this up first!\n\
-        we are expecting something like this in your .ssh/config file...\n\
-        Host <computer_alias>\n\
-            HostName <computer_name>\n\
-            User <username_for_computer>"
-        );
-        return
-    }
-
-    // load ssh config file and parse it to a usable type
-    let config_str = utils::read_to_string(&ssh_config,Some(""));
-    let ssh_conf = SSHConfig::parse_str(&config_str).unwrap();
-
     // connect to servers
     println!("connecting to remote hosts ...");
-    let mut host_connections = HashMap::<String, Host>::new();
-    for host in &needed_hosts {
-        let host_config = ssh_conf.query(host);
-        let username = host_config.get("User");
+    let mut host_connections = connect_to_hosts(&needed_hosts).or_else(|error|{
+        println!("unable to connect to host {:?}",error);
+        return
+    });
 
-        let username = match username {
-            None => this_user.as_str().to_string(),
-            Some(user) => user.to_string()
-        };
-
-        // check if the needed host is this host
-        match host == this_host.as_str(){
-            true => {
-                host_connections.insert(host.to_string(), Host::Local);
-            }
-            false => {
-                match RemoteHost::new(host, username.as_str(), 22) {
-                    Err(conn_error) =>{
-                        match conn_error {
-                            ConnectionError::NoPublicKeysFound => {
-                                println!("no ssh public keys found in {:?}\nRun ssh-keygen and make sure you have password-less access to {}", ssh_dir, host);
-                                return;
-                            }
-                            ConnectionError::UnableToConnect => {
-                                println!("unable to connect to {}. Make sure you have password-less access!\nYou may need to run ssh-copy-id {}@{}", host, username, host);
-                                return
-                            }
-                            ConnectionError::UnableToStartShell => {
-                                println!("unable to start a shell on {}.", host);
-                                return
-                            }
-                            _=> {}
-                        }
-                    } ,
-                    Ok(mut connected_host) => {
-                        match connected_host.check_for_server_bin() {
-                            Err(_) => {
-                                println!("unable to successfully talk to status server on {}.", host);
-                                return
-                            }
-                            Ok(_) => {
-                                host_connections.insert(host.to_string(), Host::Remote(connected_host));
-                            }
-                        }
-                    }
-                };
+    // see that the servers' executable is accessible
+    for (_, connection) in host_connections.iter_mut() {
+        if let PipeStatusHost::Remote(remote_connection) = connection {
+            if let Err(error) = check_for_server_bin(remote_connection) {
+                println!("unable to find server binary {:?}", error);
+                return
             }
         }
     }
+
 
     let (status,prog) = conf_col.pipe_status(&args.last_pipeline, &args, &mut host_connections, &this_host, &big_disks);
 
@@ -163,13 +112,12 @@ fn run_client(args:&ClientArgs){
         println!("{}",txt);
     }
 
-
     // do something useful with status'
-
-
-
-
-
 }
 
-
+pub fn check_for_server_bin(remote_host:&mut RemoteHostConnection) -> Result<(),HostConnectionError> {
+    println!("checking for server binary on {} ...",remote_host.hostname);
+    let shell_cmd = "pipe_status_server";
+    remote_host.run_and_listen(shell_cmd,r"pipe_status_server:=(.*)")?;
+    Ok(())
+}
