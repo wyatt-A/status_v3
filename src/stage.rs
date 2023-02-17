@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fs::File;
 use std::path::{Path};
 use std::process::Command;
 use regex::Regex;
@@ -7,6 +8,7 @@ use crate::status::{Status, StatusType};
 use utils;
 use crate::host::{DbResponse, DBStatus};
 use crate::pipe::{substitute, SubstitutionTable};
+use crate::request::ServerError;
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct Stage {
@@ -18,14 +20,14 @@ pub struct Stage {
     pub file_counter:Option<FileCounter>,
 }
 
-#[derive(Serialize,Deserialize,Debug,Clone)]
-pub struct ArchiveCheck {
-    pub preferred_computer:Option<String>,
-    pub completion_file_pattern:String,
-    pub directory_pattern:String,
-    pub required_file_keywords:Option<Vec<String>>,
-    pub file_counter:Option<FileCounter>,
-}
+// #[derive(Serialize,Deserialize,Debug,Clone)]
+// pub struct ArchiveCheck {
+//     pub preferred_computer:Option<String>,
+//     pub completion_file_pattern:String,
+//     pub directory_pattern:String,
+//     pub required_file_keywords:Option<Vec<String>>,
+//     pub file_counter:Option<FileCounter>,
+// }
 
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
@@ -41,50 +43,29 @@ pub enum FileCheckError {
     ExpectedRegexMatch,
     NoExpectedMatches,
     SubstitutionNotResolved(String),
+    CivmDBCheckNotFoundOn(String),
+    UnableToReadStdOut,
+    CannotParseCivmDbResponse,
+    InvalidExpectedArchivedElements
 }
 
 
 
 
-impl ArchiveCheck {
-    pub fn archive_check(&self,sub_table:&HashMap<String,String>) -> Result<bool,FileCheckError> {
-        let big_disk_resolved = substitute(&self.directory_pattern,sub_table)?;
-        let file_completion_pattern = substitute(&self.completion_file_pattern,sub_table)?;
-
-        let n_expected_archived = match &self.file_counter {
-            Some(counter) => {
-                counter.count(Path::new(&big_disk_resolved),sub_table)?
-            }
-            None => 1
-        };
-
-        let result = civm_db_exists(&vec![file_completion_pattern]);
-
-        let mut n_found = 0;
-        for (_,stat) in result {
-            match stat {
-                DBStatus::Found => {
-                    n_found = n_found + 1;
-                }
-                _=> {}
-            }
-        }
-        Ok(n_found == n_expected_archived)
-    }
-}
-
-pub fn civm_db_exists(things:&Vec<String>) -> HashMap<String,DBStatus> {
+pub fn civm_db_exists(things:&Vec<String>) -> Result<HashMap<String,DBStatus>,FileCheckError> {
     let cmd = "civm_db_check";
     let args:Vec<String> = things.iter().map(|thing|format!("--exists={}",thing)).collect();
-    let re = Regex::new(r#"(\{"exists":.*?\}\})"#).expect("invalid regex");
+    let re = Regex::new(r#"(\{"exists":.*?\}\})"#).map_err(|_|FileCheckError::InvalidRegex)?;
     println!("running db check locally ...");
-    let o = Command::new(cmd).args(&args).output().expect("failed to launch db check");
-    let r = String::from_utf8(o.stdout.clone()).unwrap();
-    let cap = re.captures(&r).expect("command response not matched").get(1).expect("command response").as_str().to_string();
-    let dbr:DbResponse = serde_json::from_str(&cap).expect("unable to deserialize database response");
+    let o = Command::new(cmd).args(&args).output().map_err(|_|FileCheckError::CivmDBCheckNotFoundOn(utils::computer_name()))?;
+    let r = String::from_utf8(o.stdout.clone()).map_err(|_|FileCheckError::UnableToReadStdOut)?;
+    //let cap = re.captures(&r).expect("command response not matched").get(1).expect("command response").as_str().to_string();
+    let cap = re.captures(&r).ok_or(FileCheckError::ExpectedRegexMatch)?;
+    let capture_string = cap.get(1).ok_or(FileCheckError::RegexCaptureNotFound)?.as_str();
+    let dbr:DbResponse = serde_json::from_str(capture_string).map_err(|_|FileCheckError::CannotParseCivmDbResponse)?;
     let h = dbr.to_hash();
     println!("{:?}",h);
-    h
+    Ok(h)
 }
 
 impl Stage {
@@ -139,6 +120,75 @@ impl Stage {
             progress: StatusType::InProgress(progress),
             children: vec![]
         })
+    }
+
+    pub fn archive_check(&self,sub_table:&HashMap<String,String>) -> Result<Status,FileCheckError> {
+        let big_disk_resolved = substitute(&self.directory_pattern,sub_table)?;
+        let file_completion_pattern = substitute(&self.completion_file_pattern,sub_table)?;
+
+        let n_expected_archived = match &self.file_counter {
+            Some(counter) => {
+                counter.count(Path::new(&big_disk_resolved),sub_table)?
+            }
+            None => 1
+        };
+
+        let result = civm_db_exists(&vec![file_completion_pattern])?;
+
+        let mut n_found = 0;
+        for (_,stat) in result {
+            match stat {
+                DBStatus::Found => {
+                    n_found = n_found + 1;
+                }
+                _=> {}
+            }
+        }
+
+        println!("n_found = {}",n_found);
+        println!("n_expected = {}",n_expected_archived);
+
+        if n_expected_archived == 0 && n_found == 0 {
+            return Ok(Status{
+                label: "archive".to_string(),
+                progress: StatusType::NotStarted,
+                children: vec![]
+            })
+        }
+
+        if n_expected_archived == 0 && n_found != 0 {
+            return Ok(Status{
+                label: "archive".to_string(),
+                progress: StatusType::Invalid(ServerError::FileCheckError(FileCheckError::InvalidExpectedArchivedElements)),
+                children: vec![]
+            })
+        }
+
+
+        let percent = n_found as f32/n_expected_archived as f32;
+
+        let stat = if percent == 1.0 {
+            Status{
+                label: "archive".to_string(),
+                progress: StatusType::Complete,
+                children: vec![]
+            }
+        }
+        else if percent == 0.0 {
+            Status{
+                label: "archive".to_string(),
+                progress: StatusType::NotStarted,
+                children: vec![]
+            }
+        }else {
+            Status{
+                label: "archive".to_string(),
+                progress: StatusType::InProgress(percent),
+                children: vec![]
+            }
+        };
+
+        Ok(stat)
     }
 
 }
@@ -240,8 +290,6 @@ impl FileCounter {
                         sum
                     }
                 }
-
-
             }
             ListFile => 1,
             _=> 1

@@ -25,6 +25,8 @@ fn main(){
 }
 
 fn run_server(request_json:&str){
+
+
     let re = match process_request(request_json) {
         Err(e) => Response::Error(e),
         Ok(stat) => Response::Success(stat)
@@ -59,8 +61,6 @@ fn server_test(){
     };
 
     let pipe = conf_col.get_pipe("diffusion_calc_nlsam").unwrap();
-
-
 
     let stage = pipe.stages[11].clone();
 

@@ -12,7 +12,6 @@ pub struct Request {
     pub base_runno:String,
 }
 
-
 impl Request {
     pub fn to_json(&self) -> String {
         serde_json::to_string(&self).expect("cannot serialize request")

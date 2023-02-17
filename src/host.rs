@@ -189,6 +189,7 @@ impl RemoteHost {
         println!("server_command = {}",command_string);
         let re = Regex::new(r"\|\|(.*)\|\|").expect("incorrect regular expression");
         let json_response = self.run_and_listen(&command_string,re);
+        println!("json response = {}",json_response.clone().unwrap());
         match json_response {
             Some(json) => serde_json::from_str(&json).expect("cannot deserialize response"),
             None => Response::Error(ServerError::RequestParse)

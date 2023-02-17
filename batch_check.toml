@@ -1,0 +1,3 @@
+pipe_name = "bart_recon"
+base_runno_list = ["N60300","N60301","N60302","N60303","N60304"]
+

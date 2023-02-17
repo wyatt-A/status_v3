@@ -1,16 +1,17 @@
 label = "bart_recon"
 preferred_computer = "delos"
 
-[pipeline_headfile]
+[substitutions]
+
+[[stages]]
+label = "archive"
 completion_file_pattern = "${BASE}"
 directory_pattern = "${BIGGUS_DISKUS}/Archive_Tags"
 file_counter  = {type="CountFiles",regex=".*${BASE}.*",multiplier = 1}
 preferred_computer = "delos"
 
-[substitutions]
-
 [[stages]]
-label = "acquisition"
+label = "pulled_from_scanner"
 completion_file_pattern = "resource/.*ac$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 file_counter  = {type="CountFiles",regex=".*volman_config$",multiplier=1}
@@ -29,25 +30,3 @@ completion_file_pattern = ".*headfile$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 file_counter  = {type="CountFiles",regex=".*volman_config$",multiplier=1}
 preferred_computer = "civmcluster1"
-
-# cannot handle ANY of the following stages until directory pattern is allowed to match multiple!
-# otherwise all searches will search everything!, that is at least 3 in this context.
-#[[stages]]
-#label = "raw_transfer"
-#completion_file_pattern = "${BASE}.*headfile$"
-##directory_pattern = "${BIGGUS_DISKUS}/${BASE}.*"
-#directory_pattern = "${BIGGUS_DISKUS}"
-#file_counter  = {type="FromContentDerived",file_pattern=".*headfile$",regex="dim_Z=([0-9]+)$",dep_regex=".*headfile$",dep_multiplier=1}
-#preferred_computer = "delos"
-
-#[[stages]]
-#label = "archive_tags"
-#completion_file_pattern = ".*${BASE}"
-#directory_pattern = "${BIGGUS_DISKUS}/Archive_tags"
-#file_counter  = {type="FromContentDerived",file_pattern=".*headfile$",regex="dim_Z=([0-9]+)$",dep_regex=".*headfile$",dep_multiplier=1}
-#preferred_computer = "delos"
-
-[archive]
-preferred_computer = "delos"
-# after headfile name is resolved, ask the archive if it is archived
-matches_headfile = true

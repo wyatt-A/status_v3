@@ -7,10 +7,12 @@ sep = ""
 program = "dsi_studio"
 suffix = ""
 
-[pipeline_headfile]
-completion_file_pattern = "results/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}.headfile"
+[[stages]]
+label = "archive"
+completion_file_pattern = "${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 file_counter  = {type="Constant",count = 1}
+preferred_computer = "delos"
 
 [[stages]]
 label = "co_reg"
@@ -109,8 +111,3 @@ completion_file_pattern = "results/.*${BASE}NLSAM.*(iso|fa|ad|rd|gfa)[.]nii([.]g
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 # count needs to match group from completion_file_pattern
 file_counter  = {type="Constant",count = 5}
-
-[archive]
-preferred_computer = "delos"
-# after headfile name is resolved, ask the archive if it is archived
-matches_headfile = true

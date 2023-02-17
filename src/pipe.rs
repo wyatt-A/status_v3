@@ -97,7 +97,7 @@ impl SubstitutionTable {
 
 impl PipeStatusConfig {
     pub fn from_file(file:&Path) -> Result<Self,ConfigCollectionError> {
-        let s = utils::read_to_string(&file,"toml");
+        let s = utils::read_to_string(&file,Some("toml"));
         Ok(toml::from_str(&s).map_err(|e|ConfigCollectionError::ConfigParse(file.clone().to_owned(),e))?)
     }
     pub fn sub_table(&self) -> SubstitutionTable {
@@ -309,13 +309,13 @@ impl ConfigCollection {
         };
 
         let s = toml::to_string_pretty(&co_reg).expect("cannot serialize pipe config!");
-        utils::write_to_file(&dir.join("co_reg"),"toml",&s);
+        utils::write_to_file(&dir.join("co_reg"),Some("toml"),&s);
 
         let s = toml::to_string_pretty(&diffusion_calc).expect("cannot serialize pipe config!");
-        utils::write_to_file(&dir.join("diffusion_calc"),"toml",&s);
+        utils::write_to_file(&dir.join("diffusion_calc"),Some("toml"),&s);
 
         let s = toml::to_string_pretty(&diffusion_calc_nlsam).expect("cannot serialize pipe config!");
-        utils::write_to_file(&dir.join("diffusion_calc_nlsam"),"toml",&s);
+        utils::write_to_file(&dir.join("diffusion_calc_nlsam"),Some("toml"),&s);
 
         println!("pipeline config templates generated in {:?}",dir);
     }
@@ -384,17 +384,30 @@ impl ConfigCollection {
 
         let pipe = self.get_pipe(pipe_name).expect("invalid pipeline name!");
 
-        println!("archive is some = {}",pipe.archive.is_some());
-
-        if pipe.archive.is_some() && self.is_pipe_output_archived(pipe_name, args, ssh_connections, this_host) {
-            return (vec![Status{
-                label:"archive".to_string(),
-                progress: StatusType::Complete,
-                children: vec![]
-            }],1.0)
-        }
-
         let mut pref_computer = pipe.preferred_computer.clone().unwrap_or(this_host.clone());
+
+        // look for a stage labeled archive to check first
+        let archive_stage = pipe.stages.iter().find_map(|stage|{
+            match stage.label.as_str(){
+                "archive" => Some(stage.clone()),
+                 _=> None
+            }
+        });
+
+        // check the archive stage if it exists. If it is complete, then return
+        match archive_stage {
+            Some(stage) => {
+                let stat = stage_stat(&pref_computer,&pipe,&stage,args,ssh_connections,big_disks);
+                match stat.progress {
+                    StatusType::Complete => {
+                        return (vec![stat],1.0)
+                    }
+                    _=> {}
+                }
+            },
+            None => {}
+        };
+
 
         let mut stage_statuses:Vec<Status> = vec![];
 
@@ -403,42 +416,39 @@ impl ConfigCollection {
 
         for stage in &pipe.stages {
 
+            let stat = stage_stat(&pref_computer,&pipe,stage,args,ssh_connections,big_disks);
             //println!("building request for {} ...",stage.label);
-            let mut request = Request{
-                sub_table: pipe.sub_table(),
-                stage: stage.clone(),
-                big_disk:None,
-                run_number_list:args.runno_list.clone(),
-                base_runno:args.base_runno.clone(),
-            };
-
-            // overwrite preferred computer if needed
-            match &stage.preferred_computer {
-                Some(computer) => {pref_computer = computer.clone()}
-                None => {}
-            }
-
-            request.big_disk = match &big_disks {
-                Some(disks) => {
-                    match disks.get(&pref_computer) {
-                        Some(disk) => Some(disk.to_owned()),
-                        None => None
-                    }
-                }
-                None => None
-            };
-
-            let host = ssh_connections.get_mut(&pref_computer).expect("host not found! what happened??");
-
-            println!("sending request to {}",pref_computer);
-            let stat = match host.submit_request(&request) {
-                Response::Success(status) => status,
-                Response::Error(_) => Status{
-                    label: stage.label.clone(),
-                    progress: StatusType::Invalid,
-                    children: vec![]
-                }
-            };
+            // let mut request = Request{
+            //     sub_table: pipe.sub_table(),
+            //     stage: stage.clone(),
+            //     big_disk:None,
+            //     run_number_list:args.runno_list.clone(),
+            //     base_runno:args.base_runno.clone(),
+            // };
+            // // overwrite preferred computer if needed
+            // match &stage.preferred_computer {
+            //     Some(computer) => {pref_computer = computer.clone()}
+            //     None => {}
+            // }
+            // request.big_disk = match &big_disks {
+            //     Some(disks) => {
+            //         match disks.get(&pref_computer) {
+            //             Some(disk) => Some(disk.to_owned()),
+            //             None => None
+            //         }
+            //     }
+            //     None => None
+            // };
+            // let host = ssh_connections.get_mut(&pref_computer).expect("host not found! what happened??");
+            // println!("sending request to {}",pref_computer);
+            // let stat = match host.submit_request(&request) {
+            //     Response::Success(status) => status,
+            //     Response::Error(_) => Status{
+            //         label: stage.label.clone(),
+            //         progress: StatusType::Invalid,
+            //         children: vec![]
+            //     }
+            // };
 
             //println!("status received from {}",pref_computer);
 
@@ -487,6 +497,45 @@ impl ConfigCollection {
     }
 
 }
+
+fn stage_stat(pref_computer:&String,pipe:&PipeStatusConfig,stage:&Stage, args:&ClientArgs, ssh_connections:&mut HashMap<String, Host>, big_disks:&Option<HashMap<String, String>>) -> Status {
+    let mut pref_computer = pref_computer.clone();
+    let mut request = Request{
+        sub_table: pipe.sub_table(),
+        stage: stage.clone(),
+        big_disk:None,
+        run_number_list:args.runno_list.clone(),
+        base_runno:args.base_runno.clone(),
+    };
+    // overwrite preferred computer if needed
+    match &stage.preferred_computer {
+        Some(computer) => {pref_computer = computer.clone()}
+        None => {}
+    }
+    request.big_disk = match &big_disks {
+        Some(disks) => {
+            match disks.get(pref_computer.as_str()) {
+                Some(disk) => Some(disk.to_owned()),
+                None => None
+            }
+        }
+        None => None
+    };
+    let host = ssh_connections.get_mut(&pref_computer).expect("host not found! what happened??");
+    println!("sending request to {}",pref_computer);
+    let stat = match host.submit_request(&request) {
+        Response::Success(status) => status,
+        Response::Error(e) => Status{
+            label: stage.label.clone(),
+            progress: StatusType::Invalid(e.clone()),
+            children: vec![]
+        }
+    };
+    stat
+}
+
+
+
 
 pub fn substitute(thing_to_resolve:&String,sub_table:&HashMap<String,String>) -> Result<String,FileCheckError> {
     let re = Regex::new(r"(\$\{[[:alnum:]_]+\})").map_err(|_|FileCheckError::InvalidRegex)?;

@@ -1,17 +1,22 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use clap::{Parser};
+use clap::Parser;
 use clap;
-use ssh_config::{ConfigValue, SSHConfig};
+use ssh_config::SSHConfig;
 use dirs;
 use status_v3::host::{ConnectionError, Host, RemoteHost};
 use status_v3::pipe::{ConfigCollection, ConfigCollectionError};
-use whoami;
 use status_v3::args::{Args, Action, ClientArgs, GenTemplateArgs};
 
 
-pub const DEFAULT_PIPE_CONFIG_DIR:&str = ".pipe_config";
+struct BatchCheck {
+    pipe_name:String,
+    base_runno_list:Vec<String>
+}
 
+
+
+pub const DEFAULT_PIPE_CONFIG_DIR:&str = ".pipe_config";
 
 fn main(){
     let args:Args = Args::parse();
@@ -45,10 +50,6 @@ fn run_client(args:&ClientArgs){
     if this_user.is_empty(){
         this_user = std::env::var("USERNAME").expect("unable to get environment variable");
     }
-
-    //let this_user = whoami::username();
-
-    println!("you are: {}",this_user);
 
     println!("loading config files ...");
 
@@ -100,19 +101,8 @@ fn run_client(args:&ClientArgs){
     }
 
     // load ssh config file and parse it to a usable type
-    let config_str = utils::read_to_string(&ssh_config,"");
+    let config_str = utils::read_to_string(&ssh_config,Some(""));
     let ssh_conf = SSHConfig::parse_str(&config_str).unwrap();
-
-    // println!("checking for {:?} in .ssh/config", needed_hosts);
-    // // check for a config for each server
-    // for host in &needed_hosts {
-    //     let server_config = ssh_conf.query(host);
-    //     if server_config.is_empty(){
-    //         println!("unable to find a ssh config for {}.\nPlease add a config for {} in {:?} like the following...\nHost {}\n   HostName {}\n   User your_username_on_{}"
-    //         ,host,host,ssh_config,host,host,host);
-    //         return
-    //     }
-    // }
 
     // connect to servers
     println!("connecting to remote hosts ...");
@@ -175,6 +165,8 @@ fn run_client(args:&ClientArgs){
 
 
     // do something useful with status'
+
+
 
 
 
