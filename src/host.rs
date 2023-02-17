@@ -195,5 +195,4 @@ impl RemoteHost {
             None => Response::Error(ServerError::RequestParse)
         }
     }
-
 }

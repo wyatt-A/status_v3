@@ -44,10 +44,22 @@ impl ClientArgs {
                 let mut big_disks = HashMap::<String,String>::new();
                 for arg in args {
                     let split:Vec<&str> = arg.split(":").collect();
-                    if split.len()  != 2 {
-                        Err(ArgParseError::BigDisk)?
+
+                    match split.len(){
+                        3 => {big_disks.insert(split[0].to_string(),split[1..3].join(":"));},
+                        2 => {big_disks.insert(split[0].to_string(),split[1].to_string());},
+                        _=> Err(ArgParseError::BigDisk)?
                     }
-                    big_disks.insert(split[0].to_string(),split[1].to_string());
+                    //
+                    //
+                    // // we probably have a windows path, so just join the second split
+                    // if split.len() == 3 {
+                    //     big_disks.insert(split[0].to_string(),split[1..3].join(":"));
+                    // }
+                    // if split.len() > 3 {
+                    //     Err(ArgParseError::BigDisk)?
+                    // }
+                    // big_disks.insert(split[0].to_string(),split[1].to_string());
                 }
                 Some(big_disks)
             }

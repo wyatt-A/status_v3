@@ -235,7 +235,7 @@ impl FileCounter {
                 if matched_files.is_empty() {
                     Err(FileCheckError::RequiredFileNotFound)?
                 }
-                // what about the complicated case where we should get the number from each mached file?
+                // what about the complicated case where we should get the number from each matched file?
                 // we should still have the proper number of matched files, but instead of getting number from the first and multipling,
                 // we need to sum the number from each.
                 let dep_filenames = utils::filesystem_search(&dir, Some(Regex::new(&dep_regex).map_err(|_|FileCheckError::InvalidRegex)?));

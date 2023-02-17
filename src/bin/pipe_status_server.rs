@@ -26,7 +26,6 @@ fn main(){
 
 fn run_server(request_json:&str){
 
-
     let re = match process_request(request_json) {
         Err(e) => Response::Error(e),
         Ok(stat) => Response::Success(stat)

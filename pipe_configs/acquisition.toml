@@ -1,0 +1,16 @@
+label = "acquisition"
+preferred_computer = "stejskal"
+
+[substitutions]
+
+[[stages]]
+label = "dti_scan"
+completion_file_pattern = ".*m[0-9]+[.]ac$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}"
+file_counter  = {type="CountFiles",regex=".*m[0-9]+[.]ppr$",multiplier = 1}
+
+[[stages]]
+label = "mgre_scan"
+completion_file_pattern = ".*mgre[.]ac$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}"
+file_counter  = {type="CountFiles",regex=".*mgre[.]ppr$",multiplier = 1}
