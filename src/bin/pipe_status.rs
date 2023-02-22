@@ -7,6 +7,7 @@ use dirs;
 use status_v3::host::{ConnectionError, Host, RemoteHost};
 use status_v3::pipe::{ConfigCollection, ConfigCollectionError};
 use status_v3::args::{Args, Action, ClientArgs, GenTemplateArgs};
+use status_v3::status::StatusType;
 
 
 struct BatchCheck {
@@ -52,7 +53,6 @@ fn run_client(args:&ClientArgs){
     }
 
     println!("loading config files ...");
-
     let pipe_conf_dir = args.pipe_configs.clone().unwrap_or(
         home_dir.join(DEFAULT_PIPE_CONFIG_DIR)
     );
@@ -116,12 +116,14 @@ fn run_client(args:&ClientArgs){
             Some(user) => user.to_string()
         };
 
+
         // check if the needed host is this host
         match host == this_host.as_str(){
             true => {
                 host_connections.insert(host.to_string(), Host::Local);
             }
             false => {
+                println!("\t{}@{}", &username.as_str(), host);
                 match RemoteHost::new(host, username.as_str(), 22) {
                     Err(conn_error) =>{
                         match conn_error {
@@ -156,19 +158,46 @@ fn run_client(args:&ClientArgs){
         }
     }
 
-    let (status,prog) = conf_col.pipe_status(&args.last_pipeline, &args, &mut host_connections, &this_host, &big_disks);
-
-    for s in &status{
+    let mut status = conf_col.pipe_status(&args.last_pipeline, &args, &mut host_connections, &this_host, &big_disks);
+    /*
+    for s in &status.children{
         let txt = serde_json::to_string_pretty(s).expect("cannot convert to string");
         println!("{}",txt);
     }
+    */
 
-
-    // do something useful with status'
-
-
-
-
+    // do something useful with status
+    // Lets start by limiting prints
+    match status.progress {
+        StatusType::Complete => {
+            println!("\n\n{} Complete",status.label);
+            //status.children = vec![];
+        }
+        StatusType::InProgress(_) => {
+            let mut partial_status=status.clone();
+            let mut children_with_progress = vec![];
+            let mut stage_number=0;
+            for s in &partial_status.children {
+                stage_number+=1;
+                match s.progress {
+                    //StatusType::Complete|StatusType::InProgress(_)|StatusType::Invalid(_) =>{
+                    StatusType::Complete|StatusType::InProgress(_)=>{
+                        children_with_progress.push(s.clone());
+                    }
+                    _ => {}
+                }
+            }
+            partial_status.children=children_with_progress;
+            status=partial_status;
+        }
+        StatusType::Invalid(_)|StatusType::NotStarted => {
+        }
+    }
+    // debuggy print pretty
+    //println!("{:#?}",status);
+    // dump all in "portable" json
+    let txt = serde_json::to_string_pretty(&status).expect("cannot convert to string");
+    println!("{}",txt);
 
 }
 

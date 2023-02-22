@@ -122,6 +122,7 @@ impl RemoteHost {
     pub fn new(hostname: &str, user_name: &str, port: u32) -> Result<Self, ConnectionError> {
         let ssh_dir = std::env::home_dir().expect("cannot get home dir").join(".ssh");
         let pub_keys = utils::find_files(&ssh_dir,"pub",true).ok_or(ConnectionError::NoPublicKeysFound)?;
+        // println!("{:?}",pub_keys);
         // lazy search for a private key that works
         let mut session = pub_keys.iter().find_map(|key_file|{
             match ssh::create_session().username(user_name).private_key_path(&key_file.with_extension("")).connect(&format!("{}:{}", hostname, port)){
@@ -142,7 +143,7 @@ impl RemoteHost {
     // attempt the run the server binary on the host. we should get a response from the server, otherwise
     // we will consider it a connection error
     pub fn check_for_server_bin(&mut self) -> Result<(),ConnectionError> {
-        println!("checking for server binary on {} ...",self.hostname);
+        println!("\tchecking for server binary ...");
         let shell_cmd = "pipe_status_server";
         let re = Regex::new(r"pipe_status_server:=(.*)").expect("incorrect regular expression");
         match self.run_and_listen(shell_cmd,re) {
@@ -184,12 +185,13 @@ impl RemoteHost {
     }
 
     pub fn submit_request(&mut self,request:&Request) -> Response {
+        //println!("\t{:#?}",&request);
         let req_string = serde_json::to_string(request).expect("unable to serialize request");
         let command_string = format!("pipe_status_server --request-string='{}'",req_string);
-        println!("server_command = {}",command_string);
+        println!("\tcommand = {:}",&command_string);
         let re = Regex::new(r"\|\|(.*)\|\|").expect("incorrect regular expression");
         let json_response = self.run_and_listen(&command_string,re);
-        println!("json response = {}",json_response.clone().unwrap());
+        println!("\tresponse = {:}",json_response.clone().unwrap());
         match json_response {
             Some(json) => serde_json::from_str(&json).expect("cannot deserialize response"),
             None => Response::Error(ServerError::RequestParse)

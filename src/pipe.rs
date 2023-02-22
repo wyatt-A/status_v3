@@ -321,7 +321,8 @@ impl ConfigCollection {
     }
 
     pub fn required_servers(&self,pipe_name:&str) -> HashSet<String> {
-        let pipe = self.get_pipe(pipe_name).expect("pipe not found!");
+        let pipe = self.get_pipe(pipe_name).expect(
+            &format!("{} not found in pipe configurations!",&pipe_name) );
         let mut servers = HashSet::<String>::new();
         self.get_pipe_servers(&pipe,&mut servers);
         servers
@@ -379,12 +380,18 @@ impl ConfigCollection {
         host.civm_in_db(&vec![filename.to_string_lossy().to_string()])
     }
 
-    pub fn pipe_status(&self, pipe_name:&str, args:&ClientArgs, ssh_connections:&mut HashMap<String, Host>, this_host:&String, big_disks:&Option<HashMap<String, String>>) -> (Vec<Status>, f32) {
+    pub fn pipe_status(&self, pipe_name:&str, args:&ClientArgs, ssh_connections:&mut HashMap<String, Host>, this_host:&String, big_disks:&Option<HashMap<String, String>>) -> (Status) {
         println!("running stage checks for {} ...",pipe_name);
 
-        let pipe = self.get_pipe(pipe_name).expect("invalid pipeline name!");
+        let pipe = self.get_pipe(pipe_name).expect(&format!("invalid pipeline name! {} not found",&pipe_name) );
 
         let mut pref_computer = pipe.preferred_computer.clone().unwrap_or(this_host.clone());
+
+        let mut pipe_status = Status{
+            label: pipe.label.clone(),
+            progress: StatusType::NotStarted,
+            children: vec![]
+        };
 
         // look for a stage labeled archive to check first
         let archive_stage = pipe.stages.iter().find_map(|stage|{
@@ -400,7 +407,9 @@ impl ConfigCollection {
                 let stat = stage_stat(&pref_computer,&pipe,&stage,args,ssh_connections,big_disks);
                 match stat.progress {
                     StatusType::Complete => {
-                        return (vec![stat],1.0)
+                        pipe_status.progress=StatusType::Complete;
+                        pipe_status.children=vec![stat];
+                        return pipe_status
                     }
                     _=> {}
                 }
@@ -456,21 +465,7 @@ impl ConfigCollection {
                 StatusType::NotStarted => { // if a pipe isn't started we have to consider it being a pipe
                     match self.get_pipe(&stage.label) {
                         Some(pipe) => {
-                            let (children,progress) = self.pipe_status(&pipe.label,args,ssh_connections,this_host,big_disks);
-                            let mut s = if progress == 0.0 {
-                                Status{
-                                    label: stage.label.clone(),
-                                    progress: StatusType::NotStarted,
-                                    children: vec![]
-                                }
-                            }else {
-                                Status{
-                                    label: stage.label.clone(),
-                                    progress: StatusType::InProgress(progress),
-                                    children: vec![]
-                                }
-                            };
-                            s.children = children;
+                            let s = self.pipe_status(&pipe.label,args,ssh_connections,this_host,big_disks);
                             stage_statuses.push(s);
                         }
                         None => stage_statuses.push(stat)
@@ -479,8 +474,6 @@ impl ConfigCollection {
                 _=> stage_statuses.push(stat)
             }
         }
-
-
         // integrate progress
         let mut total_progress:f32 = 0.0;
         stage_statuses.iter().for_each(|stat|{
@@ -490,10 +483,11 @@ impl ConfigCollection {
                 _=> {}
             }
         });
-
         let frac_progress = total_progress /stage_statuses.len() as f32;
-
-        (stage_statuses,frac_progress)
+        // pack progress and children into our pipe status
+        pipe_status.progress=StatusType::InProgress(frac_progress);
+        pipe_status.children=stage_statuses;
+        pipe_status
     }
 
 }
@@ -522,7 +516,7 @@ fn stage_stat(pref_computer:&String,pipe:&PipeStatusConfig,stage:&Stage, args:&C
         None => None
     };
     let host = ssh_connections.get_mut(&pref_computer).expect("host not found! what happened??");
-    println!("sending request to {}",pref_computer);
+    println!("\tto:{}",pref_computer);
     let stat = match host.submit_request(&request) {
         Response::Success(status) => status,
         Response::Error(e) => Status{
@@ -533,9 +527,6 @@ fn stage_stat(pref_computer:&String,pipe:&PipeStatusConfig,stage:&Stage, args:&C
     };
     stat
 }
-
-
-
 
 pub fn substitute(thing_to_resolve:&String,sub_table:&HashMap<String,String>) -> Result<String,FileCheckError> {
     let re = Regex::new(r"(\$\{[[:alnum:]_]+\})").map_err(|_|FileCheckError::InvalidRegex)?;
