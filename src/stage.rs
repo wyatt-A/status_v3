@@ -228,16 +228,28 @@ impl FileCounter {
                 capture.parse().map_err(|_|FileCheckError::IntParseError)?
             }
             FromContentDerived{file_pattern,regex,dep_regex,dep_multiplier} => {
+                // find a file matching "file_pattern" use "regex" to find a line in the file
+                // regex must have 1 capture group
+                // we will capture that group to get an integer.
+                // use dep_regex to find other files
+                // we expect to have dep_files * "captured integer" total
+
+                // do our substitutions
                 let regex = &substitute(&regex,sub_table)?;
                 let dep_regex = &substitute(&dep_regex,sub_table)?;
+                /*  I think this block is an accidental replication
                 let re = Regex::new(&regex).map_err(|_|FileCheckError::InvalidRegex)?;
                 let matched_files = utils::filesystem_search(&dir,Some(re.clone()));
                 if matched_files.is_empty() {
                     Err(FileCheckError::RequiredFileNotFound)?
                 }
+                */
+
                 // what about the complicated case where we should get the number from each matched file?
                 // we should still have the proper number of matched files, but instead of getting number from the first and multipling,
                 // we need to sum the number from each.
+
+                // find files in dir matching dep_regex, this will be our expected count
                 let dep_filenames = utils::filesystem_search(&dir, Some(Regex::new(&dep_regex).map_err(|_|FileCheckError::InvalidRegex)?));
                 let expected_file_count = dep_filenames.len()*dep_multiplier;
 
