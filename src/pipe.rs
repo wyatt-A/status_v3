@@ -528,7 +528,7 @@ fn stage_stat(pref_computer:&String,pipe:&PipeStatusConfig,stage:&Stage, args:&C
     stat
 }
 
-pub fn substitute(thing_to_resolve:&String,sub_table:&HashMap<String,String>) -> Result<String,FileCheckError> {
+pub fn substitute(thing_to_resolve: &String, sub_table:&HashMap<String,String>) -> Result<String,FileCheckError> {
     let re = Regex::new(r"(\$\{[[:alnum:]_]+\})").map_err(|_|FileCheckError::InvalidRegex)?;
     let mut output = thing_to_resolve.clone();
     for captures in re.captures_iter(&thing_to_resolve) {

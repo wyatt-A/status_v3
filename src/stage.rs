@@ -75,8 +75,8 @@ impl Stage {
         let big_disk_resolved = substitute(&self.directory_pattern,sub_table)?;
         let file_completion_pattern = substitute(&self.completion_file_pattern,sub_table)?;
 
-
-        //println!("big disk resolved = {}",big_disk_resolved);
+        let sub_dir = sub_table.get("directory_pattern").unwrap_or(&big_disk_resolved);
+        let count_dir=substitute( &sub_dir,sub_table)?;
 
         let matched_files = utils::filesystem_search(Path::new(&big_disk_resolved),Some(Regex::new(&file_completion_pattern).map_err(|_|FileCheckError::InvalidRegex)?));
 
@@ -89,7 +89,7 @@ impl Stage {
 
         let n_expected_matches = match &self.file_counter {
             Some(counter) => {
-                counter.count(Path::new(&big_disk_resolved),sub_table)?
+                counter.count(Path::new(&count_dir),sub_table)?
             }
             None => 1
         };
@@ -123,12 +123,17 @@ impl Stage {
     }
 
     pub fn archive_check(&self,sub_table:&HashMap<String,String>) -> Result<Status,FileCheckError> {
-        let big_disk_resolved = substitute(&self.directory_pattern,sub_table)?;
-        let file_completion_pattern = substitute(&self.completion_file_pattern,sub_table)?;
+        let big_disk_resolved = substitute(&self.directory_pattern, sub_table)?;
+        let file_completion_pattern = substitute(&self.completion_file_pattern, sub_table)?;
+
+        let sub_dir = sub_table.get("directory_pattern").unwrap_or(&big_disk_resolved);
+        let count_dir=substitute( &sub_dir,sub_table)?;
+
 
         let n_expected_archived = match &self.file_counter {
             Some(counter) => {
-                counter.count(Path::new(&big_disk_resolved),sub_table)?
+
+                counter.count(Path::new(&count_dir),sub_table)?
             }
             None => 1
         };
@@ -201,22 +206,23 @@ impl Stage {
 pub enum FileCounter {
     ListFile,
     Constant{count:usize},
-    FromName{regex:String},
-    FromContentDerived{file_pattern:String,regex:String,dep_regex:String,dep_multiplier:usize},
-    FromNameDerived{regex:String,dep_regex:String,dep_multiplier:usize,use_sum:Option<bool>},
-    CountFiles{regex:String,multiplier:usize},
+    FromName{directory_pattern:String,regex:String},
+    FromContentDerived{directory_pattern:String,file_pattern:String,regex:String,dep_regex:String,dep_dir_pattern:String,dep_multiplier:usize},
+    FromContentMatches{directory_pattern:String,file_pattern:String,regex:String},
+    FromNameDerived{directory_pattern:String,regex:String,dep_regex:String,dep_dir_pattern:String,dep_multiplier:usize,use_sum:Option<bool>},
+    CountFiles{directory_pattern:String,regex:String,multiplier:usize},
 }
 
 impl FileCounter {
     pub fn count(&self,dir:&Path,sub_table:&HashMap<String,String>) -> Result<usize,FileCheckError> {
         use FileCounter::*;
         let count = match &self {
-            CountFiles {regex,multiplier} => {
+            CountFiles { directory_pattern, regex,multiplier } => {
                 let regex = substitute(&regex,sub_table)?;
                 let matched_filenames = utils::filesystem_search(&dir, Some(Regex::new(&regex).map_err(|_|FileCheckError::InvalidRegex)?));
                 matched_filenames.len()*multiplier
             }
-            FromName{regex} => {
+            FromName{ directory_pattern, regex } => {
                 let regex = substitute(&regex,sub_table)?;
                 let re = Regex::new(&regex).map_err(|_|FileCheckError::InvalidRegex)?;
                 let matched_files = utils::filesystem_search(&dir,Some(re.clone()));
@@ -227,7 +233,7 @@ impl FileCounter {
                 let capture = caps.get(1).ok_or(FileCheckError::RegexCaptureNotFound)?.as_str();
                 capture.parse().map_err(|_|FileCheckError::IntParseError)?
             }
-            FromContentDerived{file_pattern,regex,dep_regex,dep_multiplier} => {
+            FromContentDerived{ directory_pattern, file_pattern,regex,dep_regex, dep_dir_pattern, dep_multiplier } => {
                 // find a file matching "file_pattern" use "regex" to find a line in the file
                 // regex must have 1 capture group
                 // we will capture that group to get an integer.
@@ -269,7 +275,7 @@ impl FileCounter {
                 expected_file_count*content_integer
             }
             Constant {count} => *count,
-            FromNameDerived {regex,dep_regex,dep_multiplier,use_sum} => {
+            FromNameDerived { directory_pattern, regex,dep_regex, dep_dir_pattern, dep_multiplier,use_sum } => {
                 let regex = &substitute(&regex,sub_table)?;
                 let dep_regex = &substitute(&dep_regex,sub_table)?;
                 let re = Regex::new(&regex).map_err(|_|FileCheckError::InvalidRegex)?;

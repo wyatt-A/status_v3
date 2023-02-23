@@ -13,7 +13,7 @@ built_log="$build_logs/built.log";
 last_built_log="$build_logs/built_last.log";
 touch "$b_start";
 cargo build  --release &> "$build_logs/release.log" &
-cargo build  --debug &> "$build_logs/debug.log" &
+cargo build  &> "$build_logs/debug.log" &
 wait;
 
 #TARGET_CC=x86_64-linux-musl-gcc cargo build --release --target x86_64-unknown-linux-musl\
@@ -27,22 +27,27 @@ if [ "$bc" -ge 1 ];
 then
     echo "Build complete";
     mv "$built_log" "$last_built_log";
-else
+elif [ ! -s "$build_logs/release.log" ];
+then
     echo "Targets already up to date.";
+    rm "$built_log";
     cat "$last_built_log";
+else
+    cat "$build_logs/debug.log";
 fi;
 
 #
 # update copy in WKS_BIN ... not 100% this is a good idea
 #
-if [ -e "$WKS_BIN" ];then
-   while read file ; do
-       fn=$(basename "$file");
-       bc="$WKS_BIN/$fn";
-       if [[ ! -e "$bc" ]]
-		  || [[ "$bc" -ot "$file" ]]; then
-	   cp -p "$file" "$bc";
-       fi;
-   done < "$last_built_log";
+if [ -e "$WKS_BIN" ];
+then
+    while read file ;
+    do
+	fn=$(basename "$file");
+	bc="$WKS_BIN/$fn";
+	if [[ ! -e "$bc" ]] || [[ "$bc" -ot "$file" ]];
+	then
+	    cp -p "$file" "$bc";
+	fi;
+    done < "$last_built_log";
 fi;
-   
