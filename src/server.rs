@@ -48,6 +48,7 @@ pub fn process_request(req:&str) -> Result<Status,ServerError> {
     table.insert(String::from("BASE"),req.base_runno.clone());
 
 
+
     let stat = match req.stage.label.as_str() {
         "archive" => {
             req.stage.archive_check(&table).map_err(|e|ServerError::FileCheckError(e))?

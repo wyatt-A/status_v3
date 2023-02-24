@@ -75,21 +75,16 @@ impl Stage {
         let big_disk_resolved = substitute(&self.directory_pattern,sub_table)?;
         let file_completion_pattern = substitute(&self.completion_file_pattern,sub_table)?;
 
-        let sub_dir = sub_table.get("directory_pattern").unwrap_or(&big_disk_resolved);
-        let count_dir=substitute( &sub_dir,sub_table)?;
+        //let sub_dir = sub_table.get("directory_pattern").unwrap_or(&big_disk_resolved);
+        //let count_dir=substitute( &sub_dir,sub_table)?;
 
         let matched_files = utils::filesystem_search(Path::new(&big_disk_resolved),Some(Regex::new(&file_completion_pattern).map_err(|_|FileCheckError::InvalidRegex)?));
 
-        // for file in &matched_files {
-        //     println!("{}",file);
-        // }
-
         let n_matched_files = matched_files.len();
-
 
         let n_expected_matches = match &self.file_counter {
             Some(counter) => {
-                counter.count(Path::new(&count_dir),sub_table)?
+                counter.count(Path::new(&big_disk_resolved),sub_table)?
             }
             None => 1
         };
@@ -126,14 +121,12 @@ impl Stage {
         let big_disk_resolved = substitute(&self.directory_pattern, sub_table)?;
         let file_completion_pattern = substitute(&self.completion_file_pattern, sub_table)?;
 
-        let sub_dir = sub_table.get("directory_pattern").unwrap_or(&big_disk_resolved);
-        let count_dir=substitute( &sub_dir,sub_table)?;
-
+        //let sub_dir = sub_table.get("directory_pattern").unwrap_or(&big_disk_resolved);
+        //let count_dir=substitute( &sub_dir,sub_table)?;
 
         let n_expected_archived = match &self.file_counter {
             Some(counter) => {
-
-                counter.count(Path::new(&count_dir),sub_table)?
+                counter.count(Path::new(&big_disk_resolved),sub_table)?
             }
             None => 1
         };
@@ -206,23 +199,62 @@ impl Stage {
 pub enum FileCounter {
     ListFile,
     Constant{count:usize},
-    FromName{directory_pattern:String,regex:String},
-    FromContentDerived{directory_pattern:String,file_pattern:String,regex:String,dep_regex:String,dep_dir_pattern:String,dep_multiplier:usize},
-    FromContentMatches{directory_pattern:String,file_pattern:String,regex:String},
-    FromNameDerived{directory_pattern:String,regex:String,dep_regex:String,dep_dir_pattern:String,dep_multiplier:usize,use_sum:Option<bool>},
-    CountFiles{directory_pattern:String,regex:String,multiplier:usize},
+    FromName{directory_pattern:Option<String>,regex:String},
+    FromContentDerived{directory_pattern:Option<String>,file_pattern:String,regex:String,dep_regex:String,dep_dir_pattern:Option<String>,dep_multiplier:usize},
+    FromContentMatches{directory_pattern:Option<String>,file_pattern:String,regex:String},
+    FromNameDerived{directory_pattern:Option<String>,regex:String,dep_regex:String,dep_dir_pattern:Option<String>,dep_multiplier:usize,use_sum:Option<bool>},
+    CountFiles{directory_pattern:Option<String>,regex:String,multiplier:usize},
 }
 
 impl FileCounter {
     pub fn count(&self,dir:&Path,sub_table:&HashMap<String,String>) -> Result<usize,FileCheckError> {
         use FileCounter::*;
+
+        let mut tmp = "".to_string();
+        let dir =
+        match &self {
+            CountFiles { directory_pattern, .. }
+            | FromName { directory_pattern, .. }
+            | FromNameDerived { directory_pattern, .. }=> {
+                let fc_dir = match &directory_pattern {
+                    Some(fc_dir) => {
+                        tmp = substitute(&fc_dir, sub_table)?;
+                        Path::new(&tmp)
+                    }
+                    None => {
+                        &dir
+                    }
+                };
+                fc_dir
+            }
+            _ => { &dir }
+        };
+
+        /*match & self {
+        CountFiles|
+        FromNameDerived|
+        FromName=>{
+
+        }
+        }
+        let count_dir = match &self {
+            CountFiles{ directory_pattern, ..}|FromName { directory_pattern, ..} => {
+                Some(dir_pattern) => {
+                    let resolved_dir=substitute(dir_pattern,sub_table)?;
+                    Path::new(&resolved_dir)
+                }
+                None => {
+                    &dir
+                }
+            }
+            */
         let count = match &self {
-            CountFiles { directory_pattern, regex,multiplier } => {
+            CountFiles {  regex,multiplier, .. } => {
                 let regex = substitute(&regex,sub_table)?;
                 let matched_filenames = utils::filesystem_search(&dir, Some(Regex::new(&regex).map_err(|_|FileCheckError::InvalidRegex)?));
                 matched_filenames.len()*multiplier
             }
-            FromName{ directory_pattern, regex } => {
+            FromName{ regex, .. } => {
                 let regex = substitute(&regex,sub_table)?;
                 let re = Regex::new(&regex).map_err(|_|FileCheckError::InvalidRegex)?;
                 let matched_files = utils::filesystem_search(&dir,Some(re.clone()));
@@ -233,7 +265,7 @@ impl FileCounter {
                 let capture = caps.get(1).ok_or(FileCheckError::RegexCaptureNotFound)?.as_str();
                 capture.parse().map_err(|_|FileCheckError::IntParseError)?
             }
-            FromContentDerived{ directory_pattern, file_pattern,regex,dep_regex, dep_dir_pattern, dep_multiplier } => {
+            FromContentDerived{  file_pattern,regex,dep_regex, dep_dir_pattern, dep_multiplier, .. } => {
                 // find a file matching "file_pattern" use "regex" to find a line in the file
                 // regex must have 1 capture group
                 // we will capture that group to get an integer.
@@ -275,7 +307,7 @@ impl FileCounter {
                 expected_file_count*content_integer
             }
             Constant {count} => *count,
-            FromNameDerived { directory_pattern, regex,dep_regex, dep_dir_pattern, dep_multiplier,use_sum } => {
+            FromNameDerived { regex,dep_regex, dep_dir_pattern, dep_multiplier,use_sum, .. } => {
                 let regex = &substitute(&regex,sub_table)?;
                 let dep_regex = &substitute(&dep_regex,sub_table)?;
                 let re = Regex::new(&regex).map_err(|_|FileCheckError::InvalidRegex)?;
