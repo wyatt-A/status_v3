@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+
+host_list="delos civmcluster1 vidconfmac piper";
+if [ ! -z "$@" ];
+then
+   host_list="$@";
+fi;
 # ;)
 best_dev=$(echo $HOSTNAME |grep -c seba);
 if [ "$best_dev" -ge 1 ];
@@ -8,11 +14,10 @@ then
    scp ./target/x86_64-unknown-linux-musl/release/{pipe_status,pipe_status_server} civmcluster1:/cm/shared/workstation_code_dev/bin &
    scp ./target/x86_64-pc-windows-gnu/release/{pipe_status.exe,pipe_status_server.exe} mrs@stejskal:/c/workstation/bin &
 else
-    ./build.bash &
-    ./remote_build.bash &
+    ./build.bash $host_list &
+    ./remote_build.bash $host_list &
 fi;
 
-./send_config.bash &
+./send_config.bash $host_list &
 wait
 echo "deployment complete"
-
