@@ -12,6 +12,9 @@ use status_v3::status::Status;
 struct ServerArgs {
     #[clap(long)]
     request_string:Option<String>,
+    /// Turn debugging information on
+    #[clap(short, long, action = clap::ArgAction::Count)]
+    debug: u8,
 }
 
 fn main(){

@@ -401,8 +401,8 @@ impl ConfigCollection {
             }
         });
 
-        // check the archive stage if it exists. If it is complete, then return
-        match archive_stage {
+        // check the archive stage if it exists. If it is complete, skip further checks and  return
+        match &archive_stage {
             Some(stage) => {
                 let stat = stage_stat(&pref_computer,&pipe,&stage,args,ssh_connections,big_disks);
                 match stat.progress {
@@ -483,7 +483,15 @@ impl ConfigCollection {
                 _=> {}
             }
         });
-        let frac_progress = total_progress /stage_statuses.len() as f32;
+        let frac_progress = match archive_stage {
+            Some(_) => {
+                total_progress / (stage_statuses.len()-1) as f32
+            },
+            _ =>{
+                total_progress /stage_statuses.len() as f32
+            },
+        };
+
         // pack progress and children into our pipe status
         pipe_status.progress=StatusType::InProgress(frac_progress);
         pipe_status.children=stage_statuses;

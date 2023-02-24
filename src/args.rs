@@ -19,6 +19,11 @@ pub struct ClientArgs {
     pub pipe_configs:Option<PathBuf>,
     // #[clap(short, long)]
     // pub base_expand:Option<usize>,
+    #[clap(long)]
+    pub print_all:bool,
+    /// Turn debugging information on
+    #[clap(short, long, action = clap::ArgAction::Count)]
+    debug: u8,
 }
 
 #[derive(clap::Subcommand,Debug)]

@@ -188,7 +188,9 @@ fn run_client(args:&ClientArgs){
                 }
             }
             partial_status.children=children_with_progress;
-            status=partial_status;
+            if ! args.print_all {
+                status = partial_status;
+            }
         }
         StatusType::Invalid(_)|StatusType::NotStarted => {
         }

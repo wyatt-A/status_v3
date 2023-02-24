@@ -230,24 +230,7 @@ impl FileCounter {
             _ => { &dir }
         };
 
-        /*match & self {
-        CountFiles|
-        FromNameDerived|
-        FromName=>{
-
-        }
-        }
-        let count_dir = match &self {
-            CountFiles{ directory_pattern, ..}|FromName { directory_pattern, ..} => {
-                Some(dir_pattern) => {
-                    let resolved_dir=substitute(dir_pattern,sub_table)?;
-                    Path::new(&resolved_dir)
-                }
-                None => {
-                    &dir
-                }
-            }
-            */
+        println!("Proceeding with count using {}.",dir.to_string_lossy());
         let count = match &self {
             CountFiles {  regex,multiplier, .. } => {
                 let regex = substitute(&regex,sub_table)?;
