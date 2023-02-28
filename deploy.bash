@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# cleverly update local too >:)
+# sneaking a rel build for local, schedueld last
 host_list="delos civmcluster1 vidconfmac piper localhost";
 if [ ! -z "$@" ];
 then
@@ -15,10 +15,10 @@ then
    scp ./target/x86_64-unknown-linux-musl/release/{pipe_status,pipe_status_server} civmcluster1:/cm/shared/workstation_code_dev/bin &
    scp ./target/x86_64-pc-windows-gnu/release/{pipe_status.exe,pipe_status_server.exe} mrs@stejskal:/c/workstation/bin &
 else
-    # with localhost in host list, we dont need explicit build local, but forcing local debug build is fun.
+    # local build of debug only. for giggle.s
     ./build.bash debug &
     ./remote_build.bash $host_list &
-    ./config_update_from_local.bash 
+    ./config_update_from_local.bash
 fi;
 
 ./send_config.bash $host_list &
