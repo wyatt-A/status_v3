@@ -3,6 +3,13 @@ set -e
 # Tried to set up cross-compiling,
 # but it's a giant hassle(from linux to mac or win), will probably do remote builds.
 
+# release debug or rnd for both
+type="$1";
+if [[ "$type" != "debug" ]] && [[ "$type" != "release" ]] && [[ "$type" != "rnd" ]]; then
+    echo "Unknown build type: $type. Will proceede in release build";
+    type="release";
+fi;
+
 build_logs=build_logs
 if [ ! -e "$build_logs" ];
 then
@@ -12,10 +19,15 @@ b_start="$build_logs/build_start";
 built_log="$build_logs/built.log";
 last_built_log="$build_logs/built_last.log";
 touch "$b_start";
-cargo build  --release &> "$build_logs/release.log" &
-cargo build  &> "$build_logs/debug.log" &
+if [[ "$type" == "release" ]] || [[ "$type" == "rnd" ]];
+then
+    cargo build  --release &> "$build_logs/release.log" &
+fi
+if [[ "$type" == "debug" ]] || [[ "$type" == "rnd" ]];
+then
+    cargo build  &> "$build_logs/debug.log" &
+fi;
 wait;
-
 #TARGET_CC=x86_64-linux-musl-gcc cargo build --release --target x86_64-unknown-linux-musl\
 #    && cargo build --target=x86_64-pc-windows-gnu --release\
 #    && cargo build --release
