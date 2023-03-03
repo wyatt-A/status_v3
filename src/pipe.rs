@@ -2,6 +2,7 @@ use std::borrow::BorrowMut;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use regex::Regex;
+use civm_rust_utils as utils;
 use crate::stage::{FileCheckError, FileCounter, Stage};
 use serde::{Serialize,Deserialize};
 use crate::args::ClientArgs;

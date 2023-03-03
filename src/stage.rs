@@ -5,7 +5,7 @@ use std::process::Command;
 use regex::Regex;
 use serde::{Serialize,Deserialize};
 use crate::status::{Status, StatusType};
-use utils;
+use civm_rust_utils as utils;
 use crate::host::{DbResponse, DBStatus};
 use crate::pipe::{substitute, SubstitutionTable};
 use crate::request::ServerError;

@@ -8,6 +8,7 @@ use status_v3::host::{ConnectionError, Host, RemoteHost};
 use status_v3::pipe::{ConfigCollection, ConfigCollectionError};
 use status_v3::args::{Args, Action, ClientArgs, GenTemplateArgs};
 use status_v3::status::StatusType;
+use civm_rust_utils as utils;
 
 
 struct BatchCheck {
