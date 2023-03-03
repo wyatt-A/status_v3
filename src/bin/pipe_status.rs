@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use clap::Parser;
 use clap;
 use ssh_config::SSHConfig;
@@ -9,13 +9,6 @@ use status_v3::pipe::{ConfigCollection, ConfigCollectionError};
 use status_v3::args::{Args, Action, ClientArgs, GenTemplateArgs};
 use status_v3::status::StatusType;
 use civm_rust_utils as utils;
-
-
-struct BatchCheck {
-    pipe_name:String,
-    base_runno_list:Vec<String>
-}
-
 
 
 pub const DEFAULT_PIPE_CONFIG_DIR:&str = ".pipe_config";
@@ -54,16 +47,28 @@ fn run_client(args:&ClientArgs){
     }
 
     println!("loading config files ...");
-    let pipe_conf_dir = args.pipe_configs.clone().unwrap_or(
-        home_dir.join(DEFAULT_PIPE_CONFIG_DIR)
-    );
-
+    let pipe_conf_dir = match &args.pipe_configs {
+        Some(config_path) => config_path.clone(),
+        None => {
+            // lets first look in pipeline settings for configs. If the variable isn't set or the dir doesn't exist, resort to home directory
+            if let Ok(wks_settings_dir) = std::env::var("WKS_SETTINGS") {
+                let conf_dir = Path::new(wks_settings_dir.as_str()).join("status_configs");
+                if !conf_dir.exists() {
+                    home_dir.join(DEFAULT_PIPE_CONFIG_DIR)
+                }else {
+                    conf_dir
+                }
+            }else {
+                home_dir.join(DEFAULT_PIPE_CONFIG_DIR)
+            }
+        }
+    };
     let conf_col = match ConfigCollection::from_dir(&pipe_conf_dir) {
         Err(error) => {
             match error {
                 ConfigCollectionError::NoConfigsFound => {
                     println!("no config files found in {:?}.\n\
-                    Please specify with --pipe-configs=/some/path\n\
+                    Please specify a correct directory containing configurations with --pipe-configs=/some/path\n\
                     or generate some templates with pipe_status gen-templates",pipe_conf_dir);
                     return
                 }
