@@ -5,3 +5,4 @@ pub mod pipe;
 pub mod host;
 pub mod args;
 pub mod server;
+pub mod client;
