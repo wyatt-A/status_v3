@@ -1,0 +1,19 @@
+label = "diffusion_nlsam_gen_fib"
+preferred_computer = "delos"
+
+[substitutions]
+prefix = "diffusion"
+sep = ""
+program = "dsi_studio"
+suffix = ""
+
+[[stages]]
+label = "dsi_studio_source"
+completion_file_pattern = "work/.*src(.gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
+
+[[stages]]
+label = "dsi_studio_fib"
+completion_file_pattern = "results/.*fib(.gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+

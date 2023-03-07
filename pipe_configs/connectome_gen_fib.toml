@@ -1,0 +1,20 @@
+label = "connectome_gen_fib"
+preferred_computer = "vidconfmac"
+
+[substitutions]
+prefix = "connectome"
+sep = ""
+program = "dsi_studio"
+suffix = ""
+
+[[stages]]
+# becuase this moves between results to work dir, we test the results folder, once our fib is present, we wont even enter this sub-pipe.
+# Once it moves out of results, it may be deleted.
+label = "dsi_studio_source"
+completion_file_pattern = "results/.*src(.gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+
+[[stages]]
+label = "dsi_studio_fib"
+completion_file_pattern = "results/.*fib(.gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"

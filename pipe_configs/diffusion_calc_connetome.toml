@@ -1,0 +1,64 @@
+label = "diffusion_calc_connectome"
+preferred_computer = "vidconfmac"
+
+[substitutions]
+prefix = "connectome"
+sep = ""
+program = "dsi_studio"
+suffix = ""
+
+[[stages]]
+label = "label_prep"
+completion_file_pattern = "results/.*_labels[.]nii(.gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results/"
+
+# recmask
+
+# moved into "sub-pipe" connectome_gen_fib becuase this can be deleted once created
+#[[stages]]
+#label = "dsi_studio_source"
+#completion_file_pattern = "work/.*src(.gz)?$"
+#directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
+
+[[stages]]
+label = "connectome_gen_fib"
+completion_file_pattern = "results/.*fib(.gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+
+[[stages]]
+label = "dsi_studio_track"
+completion_file_pattern = "work/.*(tt|trk)(.gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
+
+[[stages]]
+label = "dsi_studio_connectome"
+completion_file_pattern = "results/.*(connectivity|connectogram|network_measures|stat).(txt|mat)$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+file_counter  = {type="Constant",count = 4}
+
+# label erode
+
+# label measure
+
+[[stages]]
+label = "dsi_studio_export"
+# beceuase of chaos regarding the existience of nqa/qa we dont test for it, and presume we're complete if we have most things
+# tdi testing is slipped in here instead of separate
+completion_file_pattern = "results/.*${BASE}.*[.](iso|fa|ad|rd|md|nqa|tdi|tdi_color)[.]nii([.]gz)?$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+# count needs to match group from completion_file_pattern
+file_counter  = {type="Constant",count = 8}
+
+[[stages]]
+label = "review_nhdr"
+completion_file_pattern = "nhdr/.*_(b0(avg)?|dwi|fa|ad|rd|md|nqa|tdi|tdi_color|labels)[.]nhdr$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results/"
+#file_counter  = {type="CountFiles",regex = "results/[^/]+.nii(.gz)?$",multiplier=1}
+file_counter  = {type="Constant",count = 10}
+
+[[stages]]
+label = "archive"
+completion_file_pattern = "${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+file_counter  = {type="Constant",count = 1}
+preferred_computer = "delos"

@@ -1,0 +1,47 @@
+label = "connectome_nlsam_project"
+
+[substitutions]
+prefix = "connectome"
+sep = ""
+program = "dsi_studio"
+suffix = ""
+
+## eeeep! tough to do this one.
+#[[stages]]
+#label = "acquisition"
+
+[[stages]]
+label = "bart_recon"
+completion_file_pattern = ".*headfile$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+file_counter  = {type="CountFiles",regex=".*volman_config$",multiplier=1}
+preferred_computer = "civmcluster1"
+
+#[[stages]]
+#label = "archive"
+# label = "diffusion_calc_nlsam"
+#completion_file_pattern = "${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}"
+#directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+#file_counter  = {type="Constant",count = 1}
+#preferred_computer = "delos"
+
+[[stages]]
+label = "diffusion_calc_nlsam"
+completion_file_pattern = "diffusion${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results/diffusion${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}.headfile"
+directory_pattern = "${BIGGUS_DISKUS}/diffusion${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+file_counter  = {type="Constant",count = 1}
+
+[[stages]]
+label = "diffusion_calc_connectome"
+# need to "adjust" base when called.
+completion_file_pattern = "${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}.headfile"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+file_counter  = {type="Constant",count = 1}
+
+[[stages]]
+label = "archive"
+completion_file_pattern = "${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+file_counter  = {type="Constant",count = 1}
+preferred_computer = "delos"
+

@@ -8,13 +8,6 @@ program = "dsi_studio"
 suffix = ""
 
 [[stages]]
-label = "archive"
-completion_file_pattern = "${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-file_counter  = {type="Constant",count = 1}
-preferred_computer = "delos"
-
-[[stages]]
 label = "co_reg"
 completion_file_pattern = "results/co_reg.*headfile"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
@@ -93,13 +86,7 @@ directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM
 
 [[stages]]
 preferred_computer = "delos"
-label = "dsi_studio_source"
-completion_file_pattern = "work/.*src(.gz)?$"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
-
-[[stages]]
-preferred_computer = "delos"
-label = "dsi_studio_fib"
+label = "diffusion_nlsam_gen_fib"
 completion_file_pattern = "results/.*fib(.gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 
@@ -107,7 +94,14 @@ directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM
 preferred_computer = "delos"
 label = "dsi_studio_export"
 # beceuase of chaos regarding the existience of nqa/qa we dont test for it, and presume we're complete if we have most things
-completion_file_pattern = "results/.*${BASE}NLSAM.*(iso|fa|ad|rd|gfa)[.]nii([.]gz)?$"
+completion_file_pattern = "results/.*${BASE}NLSAM.*[.](iso|fa|ad|rd|md)[.]nii([.]gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 # count needs to match group from completion_file_pattern
 file_counter  = {type="Constant",count = 5}
+
+[[stages]]
+label = "archive"
+completion_file_pattern = "${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+file_counter  = {type="Constant",count = 1}
+preferred_computer = "delos"
