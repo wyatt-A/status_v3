@@ -215,6 +215,13 @@ fn run_client(args:&ClientArgs) -> Result<Status,()>{
         StatusType::Invalid(_)|StatusType::NotStarted => {
         }
     }
+    match &args.output {
+        None => {}
+        Some(outfile) => {
+            let s = serde_json::to_string_pretty(&status).expect("cannot convert status to json string");
+            utils::write_to_file(&outfile,None,&s);
+        }
+    }
 
     Ok(status)
     // debuggy print pretty
