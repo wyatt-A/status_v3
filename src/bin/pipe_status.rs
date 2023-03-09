@@ -195,19 +195,24 @@ fn run_client(args:&ClientArgs) -> Result<Status,()>{
         }
         StatusType::InProgress(_) => {
             let mut partial_status=status.clone();
-            let mut children_with_progress = vec![];
+            let mut children_to_report = vec![];
             let mut stage_number=0;
             for s in &partial_status.children {
                 stage_number+=1;
                 match s.progress {
                     //StatusType::Complete|StatusType::InProgress(_)|StatusType::Invalid(_) =>{
                     StatusType::Complete|StatusType::InProgress(_)=>{
-                        children_with_progress.push(s.clone());
+                        children_to_report.push(s.clone());
                     }
-                    _ => {}
+                    _ => {
+                        // archive stage is special, it should always show
+                        if s.label == "archive" {
+                            children_to_report.push(s.clone());
+                        }
+                    }
                 }
             }
-            partial_status.children=children_with_progress;
+            partial_status.children= children_to_report;
             if ! args.print_all {
                 status = partial_status;
             }
@@ -218,7 +223,8 @@ fn run_client(args:&ClientArgs) -> Result<Status,()>{
     match &args.output {
         None => {}
         Some(outfile) => {
-            let s = serde_json::to_string_pretty(&status).expect("cannot convert status to json string");
+            let mut s = serde_json::to_string_pretty(&status).expect("cannot convert status to json string");
+            s += "\n";
             utils::write_to_file(&outfile,None,&s);
         }
     }
