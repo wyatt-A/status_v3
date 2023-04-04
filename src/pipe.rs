@@ -403,7 +403,7 @@ impl ConfigCollection {
         });
 
         // check the archive stage if it exists. If it is complete, skip further checks and  return
-        match &archive_stage {
+        let archive_status = match &archive_stage {
             Some(stage) => {
                 let stat = stage_stat(&pref_computer,&pipe,&stage,args,ssh_connections,big_disks);
                 match stat.progress {
@@ -414,8 +414,9 @@ impl ConfigCollection {
                     }
                     _=> {}
                 }
+                Some(stat)
             },
-            None => {}
+            None => {None}
         };
 
 
@@ -425,7 +426,10 @@ impl ConfigCollection {
         //let mut temp_stage_buffer:Vec<Stage> = vec![];
 
         for stage in &pipe.stages {
-
+            if stage.label == "archive" {
+                // we already checked the archive stage first above, and its not done.
+                continue;
+            }
             let stat = stage_stat(&pref_computer,&pipe,stage,args,ssh_connections,big_disks);
             //println!("building request for {} ...",stage.label);
             // let mut request = Request{
@@ -463,7 +467,7 @@ impl ConfigCollection {
             //println!("status received from {}",pref_computer);
 
             match &stat.progress {
-                StatusType::NotStarted => { // if a pipe isn't started we have to consider it being a pipe
+                StatusType::NotStarted => { // if a stage isn't started we have to consider it being a pipe
                     match self.get_pipe(&stage.label) {
                         Some(pipe) => {
                             let s = self.pipe_status(&pipe.label,args,ssh_connections,this_host,big_disks);
@@ -486,6 +490,7 @@ impl ConfigCollection {
         });
         let frac_progress = match archive_stage {
             Some(_) => {
+                stage_statuses.push(archive_status.unwrap());
                 total_progress / (stage_statuses.len()-1) as f32
             },
             _ =>{
@@ -501,7 +506,7 @@ impl ConfigCollection {
 
 }
 
-fn stage_stat(pref_computer:&String,pipe:&PipeStatusConfig,stage:&Stage, args:&ClientArgs, ssh_connections:&mut HashMap<String, Host>, big_disks:&Option<HashMap<String, String>>) -> Status {
+fn stage_stat(pref_computer:&String, pipe:&PipeStatusConfig,stage:&Stage, args:&ClientArgs, ssh_connections:&mut HashMap<String, Host>, big_disks:&Option<HashMap<String, String>>) -> Status {
     let mut pref_computer = pref_computer.clone();
     let mut request = Request{
         sub_table: pipe.sub_table(),
