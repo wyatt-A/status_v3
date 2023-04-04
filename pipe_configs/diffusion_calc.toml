@@ -8,13 +8,6 @@ program = "dsi_studio"
 suffix = ""
 
 [[stages]]
-label = "archive"
-completion_file_pattern = "${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-file_counter  = {type="Constant",count = 1}
-preferred_computer = "delos"
-
-[[stages]]
 label = "co_reg"
 completion_file_pattern = "results/co_reg.*headfile"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
@@ -36,3 +29,10 @@ completion_file_pattern = "results/.*${BASE}.*[.](iso|fa|ad|rd|md)[.]nii([.]gz)?
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 # count needs to match group from completion_file_pattern
 file_counter  = {type="Constant",count = 5}
+
+[[stages]]
+label = "archive"
+completion_file_pattern = "${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+file_counter  = {type="Constant",count = 1}
+preferred_computer = "delos"

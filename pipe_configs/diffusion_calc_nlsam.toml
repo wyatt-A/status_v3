@@ -1,5 +1,5 @@
 label = "diffusion_calc_nlsam"
-preferred_computer = "civmcluster1"
+preferred_computer = "civmcluster2"
 
 [substitutions]
 prefix = "diffusion"
@@ -26,62 +26,20 @@ label = "make_avg"
 completion_file_pattern = "results/nii4D_${BASE}_dwi.nii([.]gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 
+#### nlsam-chunky.
 [[stages]]
-# create a mask from avg
-label = "make_mask"
-completion_file_pattern = "results/nii4D_${BASE}_mask.nii([.]gz)?$"
+#label = "make_4d_nlsam"
+label = "nlsam_chunky"
+completion_file_pattern = "results/nii4D_[^_]+?NLSAM.nii$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 
 [[stages]]
-# crop mask
-label = "crop_mask"
-completion_file_pattern = "work/.*_mask_cropped.nii([.]gz)?$"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
-
-[[stages]]
-# crop 4d
-label = "crop_4d"
-completion_file_pattern = "work/.*${BASE}_cropped.nii([.]gz)?$"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
-
-# chunk up the cropped 4d
-# Not going to check beause we dont know how many.
-# Internally we gotta some how "find" the right number of things
-
-[[stages]]
-# optionally we stability test
-label = "save_sigma"
-# count_resolution has optional second of (float) multiplier
-file_counter  = {type="CountFiles",regex = "work/.*chunks/.*dictChunk.*.nii$", multiplier=2 }
-completion_file_pattern = "work/.*/stabtest/.*.nii([.]gz)?$"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
-
-[[stages]]
-# generate the neighborhood_idx file
-label = "generate_nlsam_neighborhood_idx"
-# count is chunks!
-file_counter  = {type="CountFiles",regex = "work/.*chunks/.*dictChunk.*.nii$",multiplier=1 }
-completion_file_pattern = "work/.*/neighbor_idx_([0-9]+).p$"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
-
-[[stages]]
-# generate dictionaires
-label = "generate_dictionaries"
-file_counter = { type ="FromNameDerived", regex="work/.*/neighbor_idx_([0-9]+).p$", dep_regex = "work/.*chunks/.*dictChunk.*.nii$",dep_multiplier=1,use_sum=true }
-completion_file_pattern = "work/.*/dict_[0-9]+.p$"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
-
-[[stages]]
-# denoise neighborhoods
-# working name, think harder.
-label = "denoise_neighborhoods"
-completion_file_pattern = "work/.*/neighborhood_[0-9]+.*[.]p$"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
-file_counter  = { type ="FromNameDerived", regex="work/.*/neighbor_idx_([0-9]+).p$", dep_regex = "work/.*chunks/.*dictChunk.*.nii$",dep_multiplier=1 ,use_sum=true}
-
-[[stages]]
-label = "make_4d_nlsam"
-completion_file_pattern = "results/nii4D_[^_]+?NLSAM.nii$"
+preferred_computer = "delos"
+# create dwi average pre nlsam
+# also creates a b0average, we have a testing problem in that multi-shell will create multiple dwi's
+# we're ignoring that for now.
+label = "make_avg"
+completion_file_pattern = "results/nii4D_${BASE}NLSAM_dwi.nii([.]gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 
 [[stages]]
@@ -99,9 +57,9 @@ directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM
 # count needs to match group from completion_file_pattern
 file_counter  = {type="Constant",count = 5}
 
-[[stages]]
-label = "archive"
-completion_file_pattern = "${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
-file_counter  = {type="Constant",count = 1}
-preferred_computer = "delos"
+#[[stages]]
+#label = "archive"
+#completion_file_pattern = "${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}"
+#directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
+#file_counter  = {type="Constant",count = 1}
+#preferred_computer = "delos"

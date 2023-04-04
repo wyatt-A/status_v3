@@ -4,13 +4,6 @@ preferred_computer = "delos"
 [substitutions]
 
 [[stages]]
-label = "archive"
-completion_file_pattern = "${BASE}"
-directory_pattern = "${BIGGUS_DISKUS}/Archive_Tags"
-file_counter  = {type="CountFiles",regex=".*${BASE}.*",multiplier = 1}
-preferred_computer = "delos"
-
-[[stages]]
 label = "pulled_from_scanner"
 completion_file_pattern = "resource/.*ac$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
@@ -30,3 +23,10 @@ completion_file_pattern = ".*headfile$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 file_counter  = {type="CountFiles",regex=".*volman_config$",multiplier=1}
 preferred_computer = "civmcluster1"
+
+[[stages]]
+label = "archive"
+completion_file_pattern = "${BASE}"
+directory_pattern = "${BIGGUS_DISKUS}/Archive_Tags"
+file_counter  = {type="CountFiles",regex=".*${BASE}.*",multiplier = 1}
+preferred_computer = "delos"
