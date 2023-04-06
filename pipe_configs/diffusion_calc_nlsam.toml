@@ -30,6 +30,7 @@ directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM
 [[stages]]
 #label = "make_4d_nlsam"
 label = "nlsam_chunky"
+weighting = 8
 completion_file_pattern = "results/nii4D_[^_]+?NLSAM.nii$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 
