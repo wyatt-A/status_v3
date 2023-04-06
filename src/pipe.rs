@@ -494,11 +494,14 @@ impl ConfigCollection {
                         None => {}
                     }
                 }
+                _=> { }
+            }
+            match &stat.progress {
                 StatusType::Invalid(e) => {
                     // todo Should better handle invalids, for now forcing 0 progress...
                     stat.progress = StatusType::InProgress(0.0);
                 }
-                _=> { }
+                _ => {}
             }
             stage_sum = stage_sum + stat.progress.to_float() * stage_weight;
             stage_divisor = stage_divisor + stage_weight;
