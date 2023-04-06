@@ -15,6 +15,7 @@ pub struct Stage {
     pub label:String,
     pub preferred_computer:Option<String>,
     pub completion_file_pattern:String,
+    pub weighting:Option<f32>,
     pub directory_pattern:String,
     pub required_file_keywords:Option<Vec<String>>,
     pub file_counter:Option<FileCounter>,

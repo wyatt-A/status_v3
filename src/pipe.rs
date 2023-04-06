@@ -165,6 +165,7 @@ impl ConfigCollection {
                     label: "make_header".to_string(),
                     preferred_computer: None,
                     completion_file_pattern: String::from(r"inputs/.*nhdr"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/co_reg_${PARAM0}-inputs".to_string(),
                     required_file_keywords: None,
                     file_counter: None
@@ -173,6 +174,7 @@ impl ConfigCollection {
                     label: "ants_registration".to_string(),
                     preferred_computer: None,
                     completion_file_pattern: String::from(r"results/.*[Aa]ffine.(mat|txt)"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/co_reg_${PARAM0}-results".to_string(),
                     required_file_keywords: None,
                     file_counter: None
@@ -181,6 +183,7 @@ impl ConfigCollection {
                     label: "apply_transform".to_string(),
                     preferred_computer: None,
                     completion_file_pattern: String::from(r"work/Reg_.*nhdr"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/co_reg_${PARAM0}-work".to_string(),
                     required_file_keywords: None,
                     file_counter: None
@@ -205,6 +208,7 @@ impl ConfigCollection {
                     label: "co_reg".to_string(),
                     preferred_computer: None,
                     completion_file_pattern: String::from(r"results/co_reg.*headfile"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
                     required_file_keywords: None,
                     file_counter: None
@@ -213,6 +217,7 @@ impl ConfigCollection {
                     label: "make_4d".to_string(),
                     preferred_computer: None,
                     completion_file_pattern: String::from(r"results/nii4D_[^_]+nii$"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
                     required_file_keywords: None,
                     file_counter: None
@@ -221,6 +226,7 @@ impl ConfigCollection {
                     label: "dsi_studio_source".to_string(),
                     preferred_computer: None,
                     completion_file_pattern: String::from(r"work/.*src(.gz)?$"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-work".to_string(),
                     required_file_keywords: None,
                     file_counter: None
@@ -229,6 +235,7 @@ impl ConfigCollection {
                     label: "dsi_studio_fib".to_string(),
                     preferred_computer: None,
                     completion_file_pattern: String::from(r"results/.*fib(.gz)?$"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
                     required_file_keywords: None,
                     file_counter: None
@@ -237,6 +244,7 @@ impl ConfigCollection {
                     label: "dsi_studio_export".to_string(),
                     preferred_computer: None,
                     completion_file_pattern: String::from(r"results/.*nii.gz"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
                     required_file_keywords: Some(vec!["qa" ,"iso", "fa", "ad", "rd"].iter().map(|thing| thing.to_string()).collect()),
                     file_counter: None
@@ -261,6 +269,7 @@ impl ConfigCollection {
                     label: "co_reg".to_string(),
                     preferred_computer: None,
                     completion_file_pattern: String::from(r"results/co_reg.*headfile"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
                     required_file_keywords: None,
                     file_counter: None
@@ -269,6 +278,7 @@ impl ConfigCollection {
                     label: "make_4d".to_string(),
                     preferred_computer: None,
                     completion_file_pattern: String::from(r"results/nii4D_[^_]+nii$"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
                     required_file_keywords: None,
                     file_counter: None
@@ -277,6 +287,7 @@ impl ConfigCollection {
                     label: "make_4d_nlsam".to_string(),
                     preferred_computer: None,
                     completion_file_pattern: String::from(r"results/nii4D_[^_]+?NLSAM.nii$"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
                     required_file_keywords: None,
                     file_counter: None
@@ -285,6 +296,7 @@ impl ConfigCollection {
                     label: "dsi_studio_source".to_string(),
                     preferred_computer: Some(String::from("delos")),
                     completion_file_pattern: String::from(r"work/.*src(.gz)?$"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work".to_string(),
                     required_file_keywords: None,
                     file_counter: None
@@ -293,6 +305,7 @@ impl ConfigCollection {
                     label: "dsi_studio_fib".to_string(),
                     preferred_computer: Some(String::from("delos")),
                     completion_file_pattern: String::from(r"results/.*fib(.gz)?$"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
                     required_file_keywords: None,
                     file_counter: None
@@ -301,6 +314,7 @@ impl ConfigCollection {
                     label: "dsi_studio_export".to_string(),
                     preferred_computer: Some(String::from("delos")),
                     completion_file_pattern: String::from("results/.*nii.gz"),
+                    weighting: None,
                     directory_pattern: "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-results".to_string(),
                     required_file_keywords: Some(vec!["qa" ,"iso", "fa", "ad", "rd"].iter().map(|thing| thing.to_string()).collect()),
                     file_counter: None
@@ -394,6 +408,7 @@ impl ConfigCollection {
             children: vec![]
         };
 
+        /*
         // look for a stage labeled archive to check first
         let archive_stage = pipe.stages.iter().find_map(|stage|{
             match stage.label.as_str(){
@@ -402,7 +417,7 @@ impl ConfigCollection {
             }
         });
 
-        // check the archive stage if it exists. If it is complete, skip further checks and  return
+        // check the archive stage if it exists. If it is complete, skip further checks and return
         let archive_status = match &archive_stage {
             Some(stage) => {
                 let stat = stage_stat(&pref_computer,&pipe,&stage,args,ssh_connections,big_disks);
@@ -418,19 +433,72 @@ impl ConfigCollection {
             },
             None => {None}
         };
+        */
+        // look for a stage labeled archive to check first
+        let archive_status = pipe.stages.iter().find_map(|stage| {
+            match stage.label.as_str() {
+                "archive" => {
+                    let stat = stage_stat(&pref_computer, &pipe, &stage, args, ssh_connections, big_disks);
+                    match stat.progress {
+                        StatusType::Complete => {
+                            pipe_status.progress = StatusType::Complete;
+                            pipe_status.children = vec![stat.clone()]
+                        }
+                        _ => {}
+                    }
+                    Some(stat)
+                }
+                _ => { None }
+            }
+        });
 
+        match pipe_status.progress {
+            StatusType::Complete => {
+                return pipe_status;
+            }
+            _ => {}
+        }
 
         let mut stage_statuses:Vec<Status> = vec![];
-
-        // hold temp stages that are marked incomplete and also have a temporary stage attribute
-        //let mut temp_stage_buffer:Vec<Stage> = vec![];
-
+        // stage sum and divisor are used when integrating stage progress to account for different weighting.
+        // the stage progress is multiplied by the weighting, the divisor is the sum of the weighting.
+        // this allows progress to remain fractional 0 to 1
+        let mut stage_sum:f32 = 0.0;
+        let mut stage_divisor = 0.0;
         for stage in &pipe.stages {
-            if stage.label == "archive" {
-                // we already checked the archive stage first above, and its not done.
-                continue;
+            // set stage weight
+            let mut stage_weight = match stage.weighting {
+                Some(weight) => {
+                    weight
+                }
+                _=> { 1.0 }
+            };
+            // collect status
+            let mut stat = match stage.label.as_str() {
+                "archive" => {
+                    // this will exclude archive from the status, meaning we'll sho 100% complete prior to archiving.
+                    stage_weight = 0.0;
+                    // we already checked the archive stage first above, and it couldn't be done because it would have returned.
+                    archive_status.clone().unwrap()
+                }
+                _=> {
+                    stage_stat(&pref_computer, &pipe, stage, args, ssh_connections, big_disks)
+                }
+            };
+            match &stat.progress {
+                StatusType::NotStarted => { // if a stage isn't started we have to consider it being a pipe
+                    match self.get_pipe(&stage.label) {
+                        Some(pipe) => {
+                            stat= self.pipe_status(&pipe.label,args,ssh_connections,this_host,big_disks);
+                        }
+                        None => {}
+                    }
+                }
+                _=> { }
             }
-            let stat = stage_stat(&pref_computer,&pipe,stage,args,ssh_connections,big_disks);
+            stage_sum = stage_sum + stat.progress.to_float() * stage_weight;
+            stage_divisor = stage_divisor + stage_weight;
+            stage_statuses.push(stat)
             //println!("building request for {} ...",stage.label);
             // let mut request = Request{
             //     sub_table: pipe.sub_table(),
@@ -463,43 +531,10 @@ impl ConfigCollection {
             //         children: vec![]
             //     }
             // };
-
             //println!("status received from {}",pref_computer);
-
-            match &stat.progress {
-                StatusType::NotStarted => { // if a stage isn't started we have to consider it being a pipe
-                    match self.get_pipe(&stage.label) {
-                        Some(pipe) => {
-                            let s = self.pipe_status(&pipe.label,args,ssh_connections,this_host,big_disks);
-                            stage_statuses.push(s);
-                        }
-                        None => stage_statuses.push(stat)
-                    }
-                }
-                _=> stage_statuses.push(stat)
-            }
         }
-        // integrate progress
-        let mut total_progress:f32 = 0.0;
-        stage_statuses.iter().for_each(|stat|{
-            match &stat.progress {
-                StatusType::Complete => total_progress = total_progress + 1.0,
-                StatusType::InProgress(progress) => total_progress = total_progress + progress,
-                _=> {}
-            }
-        });
-        let frac_progress = match archive_stage {
-            Some(_) => {
-                stage_statuses.push(archive_status.unwrap());
-                total_progress / (stage_statuses.len()-1) as f32
-            },
-            _ =>{
-                total_progress /stage_statuses.len() as f32
-            },
-        };
-
         // pack progress and children into our pipe status
-        pipe_status.progress=StatusType::InProgress(frac_progress);
+        pipe_status.progress=StatusType::InProgress( stage_sum / stage_divisor );
         pipe_status.children=stage_statuses;
         pipe_status
     }
