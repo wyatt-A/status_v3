@@ -1,5 +1,5 @@
 label = "bart_recon"
-preferred_computer = "delos"
+preferred_computer = "civmcluster2"
 
 [substitutions]
 
@@ -8,25 +8,29 @@ label = "pulled_from_scanner"
 completion_file_pattern = "resource/.*ac$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 file_counter  = {type="CountFiles",regex=".*volman_config$",multiplier=1}
-preferred_computer = "civmcluster1"
 
 [[stages]]
 label = "recon"
 completion_file_pattern = ".*imspace.cfl$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 file_counter  = {type="CountFiles",regex=".*volman_config$",multiplier=1}
-preferred_computer = "civmcluster1"
 
 [[stages]]
 label = "civm_raw"
 completion_file_pattern = ".*headfile$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 file_counter  = {type="CountFiles",regex=".*volman_config$",multiplier=1}
-preferred_computer = "civmcluster1"
 
 [[stages]]
 label = "archive"
+#preferred_computer = "delos"
+#completion_file_pattern = "${BASE}"
+#directory_pattern = "${BIGGUS_DISKUS}/Archive_Tags"
+#file_counter  = {type="CountFiles",regex=".*${BASE}.*",multiplier = 1}
+#label = "archive"
 completion_file_pattern = "${BASE}"
-directory_pattern = "${BIGGUS_DISKUS}/Archive_Tags"
-file_counter  = {type="CountFiles",regex=".*${BASE}.*",multiplier = 1}
-preferred_computer = "delos"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+#file_counter  = {type="CountFiles",regex=".*volman_config$",multiplier=1}
+file_counter  = {type="CountFiles",regex=".*/${BASE}_m[0-9]+$",multiplier=1}
+
+

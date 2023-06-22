@@ -61,4 +61,4 @@ label = "archive"
 completion_file_pattern = "${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 file_counter  = {type="Constant",count = 1}
-preferred_computer = "delos"
+#preferred_computer = "delos"
