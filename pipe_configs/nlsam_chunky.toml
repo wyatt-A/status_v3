@@ -1,5 +1,5 @@
 label = "nlsam_chunky"
-preferred_computer = "civmcluster1"
+preferred_computer = "civmcluster2"
 
 [substitutions]
 prefix = "diffusion"
