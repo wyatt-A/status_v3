@@ -19,4 +19,5 @@ directory_pattern = "${BIGGUS_DISKUS}/co_reg_${PARAM0}-results"
 [[stages]]
 label = "apply_transform"
 completion_file_pattern = "work/Reg_.*nhdr"
+file_counter  = { type ="CountFiles", directory_pattern="${BIGGUS_DISKUS}/co_reg_${PARAM0}-inputs", regex=".*_m[0-9]+$", multiplier=1 }
 directory_pattern = "${BIGGUS_DISKUS}/co_reg_${PARAM0}-work"
