@@ -30,19 +30,19 @@ directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM
 # Internally we gotta some how "find" the right number of things
 
 [[stages]]
-# optionally we stability test
-label = "save_sigma"
-# count_resolution has optional second of (float) multiplier
-file_counter  = {type="CountFiles",regex = "work/.*chunks/.*dictChunk.*.nii$", multiplier=2 }
-completion_file_pattern = "work/.*/stabtest/.*.nii([.]gz)?$"
-directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
-
-[[stages]]
 # generate the neighborhood_idx file
 label = "generate_nlsam_neighborhood_idx"
 # count is chunks!
 file_counter  = {type="CountFiles",regex = "work/.*chunks/.*dictChunk.*.nii$",multiplier=1 }
 completion_file_pattern = "work/.*/neighbor_idx_([0-9]+).p$"
+directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
+
+[[stages]]
+# optionally we stability test
+label = "save_sigma"
+# count_resolution has optional second of (float) multiplier
+file_counter  = {type="CountFiles",regex = "work/.*chunks/.*dictChunk.*.nii$", multiplier=2 }
+completion_file_pattern = "work/.*/stabtest/.*.nii([.]gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}NLSAM${SEP}${PROGRAM}${SEP}${SUFFIX}-work"
 
 [[stages]]
