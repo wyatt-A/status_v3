@@ -1,0 +1,24 @@
+label = "mat_CS_recon_extract_fid"
+preferred_computer = "civmcluster2"
+
+[substitutions]
+
+[[stages]]
+label = "extract_fid"
+weighting = 4
+#S69630_m66.fid
+completion_file_pattern = ".*${BASE}_m[0-9]+[.]fid$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+# careful, tricksy leading / in regex MIGHT be doing what is desired.
+file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
+
+[[stages]]
+label = "volume_setup"
+weighting = 1
+# setup vars S69627_m00_setup_variables.mat
+completion_file_pattern = ".*${BASE}_m[0-9]+(_setup_variables.mat|_workspace.mat|.tmp)$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+# careful, tricksy leading / in regex MIGHT be doing what is desired.
+file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=3}
+#S69630_m66_workspace.mat
+#S69630_m66.tmp

@@ -4,22 +4,52 @@ preferred_computer = "civmcluster2"
 [substitutions]
 
 [[stages]]
-label = "pulled_from_scanner"
-completion_file_pattern = "resource/.*ac$"
+label = "scheduled"
+weighting = 0.0
+completion_file_pattern = ".*${BASE}_m[0-9]+[.]bash$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
-file_counter  = {type="CountFiles",regex=".*volman_config$",multiplier=1}
+# fails, no conent
+#file_counter  = {type="CountFiles",regex=".*${BASE}_m[0-9]$",multiplier=1}
+# fails no content
+#file_counter  = {type="CountFiles",regex=".*_m[0-9]$",multiplier=1}
+# bad info, finds all files
+#file_counter  = {type="CountFiles",regex=".*",multiplier=1}
+# bad info, finds MOST files
+#file_counter  = {type="CountFiles",regex="_m[0-9]+",multiplier=1}
+# careful, tricksy leading / in regex MIGHT be doing what is desired.
+file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
 
 [[stages]]
-label = "recon"
-completion_file_pattern = ".*imspace.cfl$"
+label = "bart_recon_fetch"
+# this tests for kspace because the resource dir can be cleaned up after the fact.
+# bart_recon_fetch is its own stage to make this feasible, internally it checks for
+# the resource*.ac file
+completion_file_pattern = ".*${BASE}_m[0-9]+_kspace[.]cfl$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
-file_counter  = {type="CountFiles",regex=".*volman_config$",multiplier=1}
+file_counter  = {type="CountFiles",regex="${BASE}_m[0-9]+[.]bash$",multiplier=1}
+
+[[stages]]
+label = "wrote_kspace"
+completion_file_pattern = ".*${BASE}_m[0-9]+_kspace[.]cfl$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+file_counter  = {type="CountFiles",regex="${BASE}_m[0-9]+[.]bash$",multiplier=1}
+
+[[stages]]
+label = "recon_imspace"
+completion_file_pattern = ".*${BASE}_m[0-9]+_imspace[.]cfl$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+file_counter  = {type="CountFiles",regex="${BASE}_m[0-9]+[.]bash$",multiplier=1}
 
 [[stages]]
 label = "civm_raw"
-completion_file_pattern = ".*headfile$"
+# first two fail even though i think they should work
+#completion_file_pattern = ".*${BASE}_m[0-9]+/${BASE}_m[0-9]+[.]headfile$"
+#completion_file_pattern = "${BASE}_m[0-9]+/${BASE}_m[0-9]+[.]headfile$"
+#completion_file_pattern = ".*${BASE}_m[0-9]+[.]headfile$"
+completion_file_pattern = ".*/${BASE}_m[0-9]+[.]headfile$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
-file_counter  = {type="CountFiles",regex=".*volman_config$",multiplier=1}
+file_counter  = {type="CountFiles",regex="${BASE}_m[0-9]+[.]bash$",multiplier=1}
+
 
 [[stages]]
 label = "archive"
@@ -31,6 +61,4 @@ label = "archive"
 completion_file_pattern = "${BASE}"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 #file_counter  = {type="CountFiles",regex=".*volman_config$",multiplier=1}
-file_counter  = {type="CountFiles",regex=".*/${BASE}_m[0-9]+$",multiplier=1}
-
-
+file_counter  = {type="CountFiles",regex="${BASE}_m[0-9]+[.]bash$",multiplier=1}

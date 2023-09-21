@@ -1,0 +1,64 @@
+label = "mat_CS_recon"
+preferred_computer = "civmcluster2"
+
+[substitutions]
+
+[[stages]]
+label = "scheduled"
+weighting = 0.0
+#completion_file_pattern = ".*${BASE}_m[0-9]+_recon[.]log$"
+completion_file_pattern = ".*${BASE}_m[0-9]+/sbatch$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+# careful, tricksy leading / in regex MIGHT be doing what is desired.
+file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
+
+[[stages]]
+label = "mat_CS_civm_raw"
+weighting = 98
+# This is handled as a sub pipe because several parts will be deleted.
+# first two fail even though i think they should work
+#completion_file_pattern = ".*${BASE}_m[0-9]+/${BASE}_m[0-9]+[.]headfile$"
+#completion_file_pattern = "${BASE}_m[0-9]+/${BASE}_m[0-9]+[.]headfile$"
+#completion_file_pattern = ".*${BASE}_m[0-9]+[.]headfile$"
+completion_file_pattern = ".*/${BASE}_m[0-9]+[.]headfile$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
+
+#[[stages]]
+#label = "volume_cleanup"
+
+[[stages]]
+label = "send volume"
+weighting = 1.8
+#.S69630_m00_send_images_to_delos_SUCCESSFUL
+completion_file_pattern = ".*/[.]${BASE}_m[0-9]+_send_images_to_.*_SUCCESSFUL$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
+
+[[stages]]
+label = "send_tag"
+weighting = 0.1
+#.S69630_m00_send_archive_tag_to_delos_SUCCESSFUL
+completion_file_pattern = ".*/[.]${BASE}_m[0-9]+_send_archive_tag_to_.*_SUCCESSFUL$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
+
+[[stages]]
+label = "send_headfile"
+weighting = 0.1
+#.S69630_m00_send_headfile_to_delos_SUCCESSFUL
+completion_file_pattern = ".*/[.]${BASE}_m[0-9]+_send_headfile_to_.*_SUCCESSFUL$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
+
+[[stages]]
+label = "archive"
+weighting = 0.0
+#preferred_computer = "delos"
+#completion_file_pattern = "${BASE}"
+#directory_pattern = "${BIGGUS_DISKUS}/Archive_Tags"
+#file_counter  = {type="CountFiles",regex=".*${BASE}.*",multiplier = 1}
+#label = "archive"
+completion_file_pattern = "${BASE}"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}

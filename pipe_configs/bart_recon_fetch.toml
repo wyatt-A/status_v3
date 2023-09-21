@@ -1,0 +1,24 @@
+label = "bart_recon_fetch"
+preferred_computer = "civmcluster2"
+
+[substitutions]
+
+[[stages]]
+weighting = 1
+label = "pulled_from_scanner"
+# Using resoruce alone is trouble because at some point its removed
+completion_file_pattern = "resource/.*[.]ac$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+file_counter  = {type="CountFiles",regex="${BASE}_m[0-9]+[.]bash$",multiplier=1}
+
+
+#[[stages]]
+# We're abusing the weighting mechanics internally,
+# this is so that the external call can look for the
+# next stage of the pipeline, allowing cleanup.
+#weighting = 0
+#label = "wrote_kspace"
+#completion_file_pattern = ".*${BASE}_m[0-9]+_kspace[.]cfl$"
+#directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+#file_counter  = {type="CountFiles",regex="${BASE}_m[0-9]+[.]bash$",multiplier=1}
+
