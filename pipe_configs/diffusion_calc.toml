@@ -1,5 +1,5 @@
 label = "diffusion_calc"
-preferred_computer = "delos"
+preferred_computer = "localhost"
 
 [substitutions]
 prefix = "diffusion"
@@ -18,11 +18,13 @@ completion_file_pattern = "results/nii4D_[^_]+nii$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 
 [[stages]]
+preferred_computer = "delos"
 label = "diffusion_gen_fib"
 completion_file_pattern = "results/.*fib(.gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 
 [[stages]]
+preferred_computer = "delos"
 label = "dsi_studio_export"
 # because of chaos regarding the existience of nqa/qa we dont test for it, and presume we're complete if we have most things
 completion_file_pattern = "results/.*${BASE}.*[.](iso|fa|ad|rd|md)[.]nii([.]gz)?$"
