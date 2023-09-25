@@ -32,7 +32,7 @@ directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SE
 
 [[stages]]
 label = "dsi_studio_connectome"
-completion_file_pattern = "results/.*(connectivity|connectogram|network_measures|stat).(txt|mat)$"
+completion_file_pattern = "results/.*(([.]count[.]pass[.](connectivity|connectogram|network_measures))|stat).(txt|mat)$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 file_counter  = {type="Constant",count = 4}
 
@@ -44,10 +44,10 @@ file_counter  = {type="Constant",count = 4}
 label = "dsi_studio_export"
 # beceuase of chaos regarding the existience of nqa/qa we dont test for it, and presume we're complete if we have most things
 # tdi testing is slipped in here instead of separate
-completion_file_pattern = "results/.*${BASE}.*[.](iso|fa|ad|rd|md|nqa|tdi|tdi_color)[.]nii([.]gz)?$"
+completion_file_pattern = "results/.*${BASE}.*[.](iso|fa|ad|rd|md|tdi|tdi_color)[.]nii([.]gz)?$"
 directory_pattern = "${BIGGUS_DISKUS}/${PREFIX}${SEP}${BASE}${SEP}${PROGRAM}${SEP}${SUFFIX}-results"
 # count needs to match group from completion_file_pattern
-file_counter  = {type="Constant",count = 8}
+file_counter  = {type="Constant",count = 7}
 
 [[stages]]
 label = "review_nhdr"
