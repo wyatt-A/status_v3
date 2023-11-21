@@ -5,7 +5,7 @@
 # generalize status reporting issue
 
 # stages of work, their % completion, weighting for each stage in regards to others.
-# each pipeline defines a "status.conf" 
+# each pipeline defines a "status.conf"
 # status.conf contains a definition of stages
 # stages reference some file as a marker for completion
 #
@@ -23,9 +23,7 @@
 # stage3=antsApplyTransform
 # stage3_tasks=n-input
 # stage3_files=results/Reg_.*nhdr
-# 
+#
 # stageFinal=write_headfile
 # stageFinal_tasks=1
 # stageFinal_files=results/pipe_input1.headfile
-
-

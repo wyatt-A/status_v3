@@ -16,7 +16,7 @@ need_mag="";
 need_dif="";
 need_con="";
 for st in $(cat $runno_file);
-do 
+do
     proj_dir=$ar_dir/$proj
     #pull the NLSAm off the runno
     r="${st:0:6}";
@@ -67,4 +67,3 @@ echo "Missing archive:";
 echo "  magnitude: $need_mag";
 echo "  diffusion: $need_dif";
 echo "  connectome: $need_con";
-

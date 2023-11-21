@@ -19,9 +19,7 @@ S69443'|sort -u |xargs);
 
 BD=/privateShares/cof;
 
-for runno in $runnos;do 
+for runno in $runnos;do
     echo -- $runno --;
     ls $BD/diffusion${runno}*-results/nii4D_${runno}.nii 2>/dev/null|| echo "no headfile";
 done
-
-

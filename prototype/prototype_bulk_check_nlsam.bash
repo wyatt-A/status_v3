@@ -10,10 +10,8 @@ fi;
 
 status_scr=/cm/shared/workstation_code_dev/shared/pipeline_utilities/prototype/prototype_nlsam_check_finished.bash
 
-list=$(for r in $@; do 
+list=$(for r in $@; do
     r="${r:0:6}NLSAM";
     echo "$r";
 done|xargs)
 bash $status_scr $list
-
-

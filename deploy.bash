@@ -22,7 +22,7 @@ else
     wait
     # if we need to, fetch from our friend's configdir
     # scp -p seba:/Users/Wyatt/IdeaProjects/status_v3/pipe_configs/{bart_recon,acquisition}.toml $WKS_SETTINGS/status_configs
-    # cant decide on method.... 
+    # cant decide on method....
     # rsync -blurtEDv seba:/Users/Wyatt/IdeaProjects/status_v3/pipe_configs/ $WKS_SETTINGS/status_configs/
     # updates repo-configs from local versions
     ./config_update_from_local.bash

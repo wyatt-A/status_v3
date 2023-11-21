@@ -2,7 +2,7 @@
 # a project code, should be whole thing NOT partial!
 proj="$1";
 # a file with a whitespace separated selection of RUNNO.
-# They can have NLSAM or not. 
+# They can have NLSAM or not.
 # This input is optional.
 runno_file="$2";
 
@@ -13,8 +13,8 @@ if [ -z "$proj" ];then echo "specify project code first"; fi;
 recon_log=${HOME}/CS_recon_status/recent_recons_$proj.log
 
 if [ ! -f "$2" ];
-then 
-    # 
+then
+    #
     if [ "$2" == "" ];then
         if [ ! -e "$recon_log" ];then
             find_recent_recons "$proj" /privateShares/cof/ > $recon_log
@@ -24,7 +24,7 @@ then
         status_files=$(awk '{print $9}' $recon_log|sort -u);
         runno_file=${HOME}/CS_recon_status/$proj.list
         for f in ${status_files}; do echo ${f%.*};done > $runno_file
-    else 
+    else
         echo "not a file: $2">&2;
         exit 1;
     fi;
@@ -37,7 +37,7 @@ need_mag="";
 need_dif="";
 need_con="";
 for st in $(cat $runno_file);
-do 
+do
     proj_dir=$ar_dir/$proj
     #pull the NLSAM off the runno if it's there
     r="${st:0:6}";
@@ -66,7 +66,7 @@ do
     if [ $count -ge $MIN_DIFF ];then
         diff=$(ls -d $proj_dir/research/diffusion${r}*dsi_studio 2> /dev/null|wc -l )
         conn=$(ls -d $proj_dir/research/connectome${r}*dsi_studio 2> /dev/null|wc -l);
-    else 
+    else
         unset diff;
         unset conn;
     fi;
@@ -107,4 +107,3 @@ echo "Missing archive:";
 echo "  magnitude: $need_mag";
 echo "  diffusion: $need_dif";
 echo "  connectome: $need_con";
-

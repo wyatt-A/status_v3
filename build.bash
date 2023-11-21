@@ -70,11 +70,11 @@ if [ -e "$WKS_BIN" ];
 then
     while read file ;
     do
-	fn=$(basename "$file");
-	bc="$WKS_BIN/$fn";
-	if [[ ! -e "$bc" ]] || [[ "$bc" -ot "$file" ]];
-	then
-	    cp -p "$file" "$bc";
-	fi;
+        fn=$(basename "$file");
+        bc="$WKS_BIN/$fn";
+        if [[ ! -e "$bc" ]] || [[ "$bc" -ot "$file" ]];
+        then
+            cp -p "$file" "$bc";
+        fi;
     done < "$last_built_log";
 fi;

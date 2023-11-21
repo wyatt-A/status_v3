@@ -18,7 +18,7 @@ S69441
 S69443'|sort -u |xargs);
 
 BD=/privateShares/cof;
-for runno in $runnos;do 
+for runno in $runnos;do
     echo -- $runno --;
     ls $BD/diffusion${runno}NLSAMdsi_studio-work/nii4D_${runno}_mask_cropped.nii 2>/dev/null|| echo "no cropped mask";
 done

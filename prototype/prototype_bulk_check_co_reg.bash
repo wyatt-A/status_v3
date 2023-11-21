@@ -19,8 +19,7 @@ S69443'|sort -u |xargs);
 
 BD=/privateShares/cof;
 
-for runno in $runnos;do 
+for runno in $runnos;do
     echo -- $runno --;
     ls $BD/co_reg_${runno}_m00-results/*.headfile 2>/dev/null|| echo "no headfile";
 done
-
