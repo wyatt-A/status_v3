@@ -1,4 +1,4 @@
-label = "mat_CS_recon_extract_fid"
+label = "mat_CS2_recon_extract_fid"
 preferred_computer = "civmcluster2"
 
 [substitutions]
@@ -7,7 +7,7 @@ preferred_computer = "civmcluster2"
 label = "extract_fid"
 weighting = 4
 #S69630_m66.fid
-completion_file_pattern = ".*meta.txt"
+completion_file_pattern = ".*${BASE}_m[0-9]+[.]fid$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 # careful, tricksy leading / in regex MIGHT be doing what is desired.
 file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
@@ -16,7 +16,7 @@ file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
 label = "volume_setup"
 weighting = 1
 # setup vars S69627_m00_setup_variables.mat
-completion_file_pattern = ".*/${BASE}_m[0-9]+_setup_variables.mat$"
+completion_file_pattern = ".*${BASE}_m[0-9]+_setup_variables.mat$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 # careful, tricksy leading / in regex MIGHT be doing what is desired.
 file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}

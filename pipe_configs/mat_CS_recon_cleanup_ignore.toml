@@ -1,4 +1,4 @@
-label = "mat_CS_recon"
+label = "mat_CS_recon_cleanup_ignore"
 preferred_computer = "civmcluster2"
 
 [substitutions]

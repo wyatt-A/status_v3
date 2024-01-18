@@ -1,0 +1,27 @@
+label = "mat_CS2_recon_civm_raw"
+preferred_computer = "civmcluster2"
+
+[substitutions]
+
+[[stages]]
+label = "mat_CS2_recon_extract_fid"
+weighting = 5
+completion_file_pattern = ".*/${BASE}_m[0-9]+[.]headfile$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
+
+#[[stages]]
+#label = "schedule_slice_jobs"
+
+[[stages]]
+label = "civm_raw"
+# 3 for the raw slices
+# +90 for completion of the tmp file
+weighting = 93
+# first two fail even though i think they should work
+#completion_file_pattern = ".*${BASE}_m[0-9]+/${BASE}_m[0-9]+[.]headfile$"
+#completion_file_pattern = "${BASE}_m[0-9]+/${BASE}_m[0-9]+[.]headfile$"
+#completion_file_pattern = ".*${BASE}_m[0-9]+[.]headfile$"
+completion_file_pattern = ".*/${BASE}_m[0-9]+[.]headfile$"
+directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
+file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}

@@ -1,4 +1,4 @@
-label = "mat_CS_recon"
+label = "mat_CS2_recon"
 preferred_computer = "civmcluster2"
 
 [substitutions]
@@ -13,7 +13,7 @@ directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
 
 [[stages]]
-label = "mat_CS_recon_civm_raw"
+label = "mat_CS2_civm_raw"
 weighting = 98
 # This is handled as a sub pipe because several parts will be deleted.
 # first two fail even though i think they should work
@@ -31,9 +31,7 @@ file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
 label = "send volume"
 weighting = 1.8
 #.S69630_m00_send_images_to_delos_SUCCESSFUL
-# sent_vol_delos
-#completion_file_pattern = ".*/[.]${BASE}_m[0-9]+_send_images_to_.*_SUCCESSFUL$"
-completion_file_pattern = ".*/sent_vol_.*"
+completion_file_pattern = ".*/[.]${BASE}_m[0-9]+_send_images_to_.*_SUCCESSFUL$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
 
@@ -41,9 +39,7 @@ file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
 label = "send_tag"
 weighting = 0.1
 #.S69630_m00_send_archive_tag_to_delos_SUCCESSFUL
-# sent_tag_delos
-#completion_file_pattern = ".*/[.]${BASE}_m[0-9]+_send_archive_tag_to_.*_SUCCESSFUL$"
-completion_file_pattern = ".*/sent_tag_.*"
+completion_file_pattern = ".*/[.]${BASE}_m[0-9]+_send_archive_tag_to_.*_SUCCESSFUL$"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
 
@@ -51,9 +47,7 @@ file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
 label = "send_headfile"
 weighting = 0.1
 #.S69630_m00_send_headfile_to_delos_SUCCESSFUL
-# sent_hf_delos
 completion_file_pattern = ".*/[.]${BASE}_m[0-9]+_send_headfile_to_.*_SUCCESSFUL$"
-completion_fil_pattern = ".*/sent_hf_.*"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
 
