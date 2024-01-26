@@ -52,8 +52,8 @@ label = "send_headfile"
 weighting = 0.1
 #.S69630_m00_send_headfile_to_delos_SUCCESSFUL
 # sent_hf_delos
-completion_file_pattern = ".*/[.]${BASE}_m[0-9]+_send_headfile_to_.*_SUCCESSFUL$"
-completion_fil_pattern = ".*/sent_hf_.*"
+#completion_file_pattern = ".*/[.]${BASE}_m[0-9]+_send_headfile_to_.*_SUCCESSFUL$"
+completion_file_pattern = ".*/sent_hf_.*"
 directory_pattern = "${BIGGUS_DISKUS}/${BASE}.work"
 file_counter  = {type="CountFiles",regex="/${BASE}_m[0-9]+$",multiplier=1}
 
